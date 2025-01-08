@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, render_template
 
 import sqlite3
@@ -29,6 +30,8 @@ def subscribe():
     data = request.json  # استلام البيانات من واجهة المستخدم
     telegram_id = data.get("telegram_id")
     subscription_type = data.get("subscription_type")
+    print(f"Received telegram_id: {telegram_id}")
+    print(f"Received subscription_type: {subscription_type}")
 
     if not telegram_id or not subscription_type:
         return jsonify({"error": "Missing telegram_id or subscription_type"}), 400

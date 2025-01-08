@@ -28,3 +28,4 @@ if __name__ == "__main__":
         view_data()
     except Exception as e:
         print(f"Error occurred: {e}")
+

@@ -217,5 +217,6 @@ function checkSubscription(telegramId) {
         }
     });
 }
+console.log("Telegram ID:", telegramId);
 
 
