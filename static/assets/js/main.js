@@ -1,8 +1,3 @@
-// الحصول على بيانات المستخدم من Telegram Web App
-const telegram = window.Telegram.WebApp;
-const telegramId = telegram.initDataUnsafe.user.id; // Telegram ID
-const username = telegram.initDataUnsafe.user.username; // اسم المستخدم
-const fullName = telegram.initDataUnsafe.user.first_name + " " + telegram.initDataUnsafe.user.last_name; // الاسم الكامل
 
 console.log("Telegram ID:", telegramId);
 console.log("Username:", username);
@@ -10,13 +5,24 @@ console.log("Full Name:", fullName);
 
 'use strict'
 // التحقق من أن Telegram WebApp متوفر
-if (!window.Telegram || !window.Telegram.WebApp) {
-    alert("يرجى فتح التطبيق من داخل Telegram.");
-} else {
+let telegramId = null;
+
+let username = null;
+let fullName = null;
+
+if (window.Telegram && window.Telegram.WebApp) {
     const telegram = window.Telegram.WebApp;
-    const telegramId = telegram.initDataUnsafe?.user?.id || null; // Telegram ID
+    telegramId = telegram.initDataUnsafe?.user?.id || null;
+    username = telegram.initDataUnsafe?.user?.username || "Unknown User";
+    fullName = `${telegram.initDataUnsafe?.user?.first_name || ''} ${telegram.initDataUnsafe?.user?.last_name || ''}`;
+
     console.log("Telegram ID:", telegramId);
+    console.log("Username:", username);
+    console.log("Full Name:", fullName);
+} else {
+    alert("يرجى فتح التطبيق من داخل Telegram.");
 }
+
 
 $(document).ready(function () {
 
@@ -74,17 +80,25 @@ $(document).ready(function () {
     });
 
     // بيانات المستخدم (أمثلة)
-const userData = {
-    name: "محمد أحمد",
-    username: "@mohamedahmed",
-    profileImage: "assets/img/user1.jpg" // رابط صورة الملف الشخصي
-};
+if (telegramId) {
+    const userNameElement = document.getElementById("user-name");
+    const userUsernameElement = document.getElementById("user-username");
+    const avatarElement = document.querySelector(".avatar img");
 
-// تحديث بيانات المستخدم في القائمة
-document.getElementById("user-name").textContent = userData.name;
-document.getElementById("user-username").textContent = userData.username;
-document.querySelector(".avatar img").src = userData.profileImage;
+    if (userNameElement) {
+        userNameElement.textContent = telegram.initDataUnsafe?.user?.first_name || "Unknown";
+    }
+    if (userUsernameElement) {
+        userUsernameElement.textContent = telegram.initDataUnsafe?.user?.username || "Unknown User";
+    }
+    if (avatarElement) {
+        avatarElement.src = "assets/img/default-profile.jpg"; // صورة افتراضية
+    }
+}
 
+} else {
+    alert("يرجى فتح التطبيق من داخل Telegram.");
+}
 
 
     /* back page navigation */
@@ -175,32 +189,13 @@ $(window).on('resize', function () {
 
 
 
+// دالة الاشتراك
 function subscribe(subscriptionType) {
-    $.ajax({
-        url: "/api/subscribe",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({
-            telegram_id: telegramId, // استخدم Telegram ID الديناميكي
-            subscription_type: subscriptionType
-        }),
-        success: function(response) {
-            alert(response.message); // عرض رسالة النجاح
-        },
-        error: function(error) {
-            alert("حدث خطأ: " + error.responseJSON.error);
-        }
-    });
-}
-
-
-function subscribe(subscriptionType) {
-    if (typeof telegramId === 'undefined' || !telegramId) {
+    if (!telegramId) {
         alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
         return;
     }
 
-    // تسجيل البيانات
     console.log("Subscription Type:", subscriptionType);
     console.log("Telegram ID:", telegramId);
 
@@ -216,16 +211,15 @@ function subscribe(subscriptionType) {
             alert(`🎉 ${response.message}`);
         },
         error: function(error) {
-            alert("حدث خطأ: " + error.responseJSON.error);
-        }
+    console.error("Error details:", error);
+    alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
+}
+
     });
 }
 
 
-
-
-
-
+// دالة التحقق من الاشتراك
 function checkSubscription(telegramId) {
     $.ajax({
         url: `/api/check_subscription?telegram_id=${telegramId}`,
@@ -234,10 +228,33 @@ function checkSubscription(telegramId) {
             console.log(response.subscriptions); // عرض بيانات الاشتراك في الكونسول
         },
         error: function(error) {
-            alert("حدث خطأ: " + error.responseJSON.message);
-        }
+    console.error("Error details:", error);
+    alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
+}
+
     });
 }
+
+function renewSubscription(subscriptionType) {
+    $.ajax({
+        url: "/api/renew",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            telegram_id: telegramId, // استخدم Telegram ID الديناميكي
+            subscription_type: subscriptionType
+        }),
+        success: function(response) {
+            alert(response.message); // عرض رسالة النجاح
+        },
+        error: function(error) {
+    console.error("Error details:", error);
+    alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
+}
+
+    });
+}
+
 console.log("Telegram ID:", telegramId);
 
 
