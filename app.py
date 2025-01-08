@@ -47,7 +47,11 @@ def subscribe():
 
     # الحصول على user_id
     cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
-    user_id = cursor.fetchone()[0]
+    user = cursor.fetchone()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user_id = user[0]
 
     # التحقق من الاشتراك الحالي
     cursor.execute("""
