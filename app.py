@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template
 
 app = Flask(__name__)
@@ -20,7 +21,6 @@ subscriptions = [
     }
 ]
 
-# بيانات المستخدم الوهمية
 user_profile = {
     "name": "محمد أحمد",
     "profile_image": "assets/images/user-placeholder.jpg",
@@ -52,4 +52,5 @@ def profile():
     return render_template("profile.html", user=user_profile)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
