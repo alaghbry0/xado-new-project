@@ -120,14 +120,20 @@ async def send_message(bot, chat_id, message):
     print(f"Sending message to {chat_id}: {message}")  # لتتبع التنفيذ
     await bot.send_message(chat_id=chat_id, text=message)
 
+    # سجل الإشعار في قاعدة البيانات
+    conn = sqlite3.connect("database/database.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO notifications (user_id, subscription_id, message, sent_at)
+        VALUES ((SELECT id FROM users WHERE telegram_id = ?), ?, ?, ?)
+    """, (chat_id, None, message, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
 
 def schedule_reminders(app):
     """جدولة التذكيرات بناءً على تواريخ الاشتراكات."""
     conn = sqlite3.connect("database/database.db")
     cursor = conn.cursor()
-
-    # إعداد المنطقة الزمنية
-    local_timezone = ZoneInfo("America/Los_Angeles")  # Pacific Standard Time
 
     # جلب الاشتراكات
     cursor.execute("""
@@ -143,37 +149,33 @@ def schedule_reminders(app):
     for subscription in subscriptions:
         subscription_id, telegram_id, subscription_type, expiry_date = subscription
 
-        # إضافة وقت افتراضي إذا لم يكن موجودًا
-        if " " not in expiry_date:  # إذا كان الوقت غير موجود
-            expiry_date += " 00:00:00"
-
-        # تحويل expiry_date إلى كائن datetime
-        expiry_date_obj = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S").replace(tzinfo=local_timezone)
+        # تحويل تاريخ انتهاء الاشتراك إلى كائن datetime
+        expiry_date_obj = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
 
         # حساب أوقات التذكيرات
-        first_reminder = expiry_date_obj - timedelta(minutes=2)  # التذكير الأول قبل ساعة
-        second_reminder = expiry_date_obj - timedelta(minutes=1)  # التذكير الثاني قبل نصف ساعة
+        first_reminder = expiry_date_obj - timedelta(minutes=2)
+        second_reminder = expiry_date_obj - timedelta(minutes=1)
 
         # جدولة التذكير الأول
-        if first_reminder > datetime.now(local_timezone):
+        if first_reminder > datetime.now():
             logging.info(f"Scheduling first reminder for {subscription_type} at {first_reminder}")
             scheduler.add_job(
                 lambda: app.create_task(send_message(
                     app.bot,
                     telegram_id,
-                    f"تذكير: اشتراكك في {subscription_type} سينتهي خلال ساعة. يرجى التجديد لتجنب الإيقاف."
+                    f"تذكير: اشتراكك في {subscription_type} سينتهي خلال 48 ساعة. يرجى التجديد لتجنب الإيقاف."
                 )),
                 trigger=DateTrigger(run_date=first_reminder)
             )
 
         # جدولة التذكير الثاني
-        if second_reminder > datetime.now(local_timezone):
+        if second_reminder > datetime.now():
             logging.info(f"Scheduling second reminder for {subscription_type} at {second_reminder}")
             scheduler.add_job(
                 lambda: app.create_task(send_message(
                     app.bot,
                     telegram_id,
-                    f"تذكير: اشتراكك في {subscription_type} سينتهي خلال نصف ساعة. يرجى التجديد لتجنب الإيقاف."
+                    f"تذكير: اشتراكك في {subscription_type} سينتهي خلال 24 ساعة. يرجى التجديد لتجنب الإيقاف."
                 )),
                 trigger=DateTrigger(run_date=second_reminder)
             )

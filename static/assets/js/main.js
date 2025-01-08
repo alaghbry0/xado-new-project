@@ -219,4 +219,21 @@ function checkSubscription(telegramId) {
 }
 console.log("Telegram ID:", telegramId);
 
+function subscribe(subscriptionType) {
+    $.ajax({
+        url: "/api/subscribe",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            telegram_id: telegramId,
+            subscription_type: subscriptionType
+        }),
+        success: function(response) {
+            alert(`✅ ${response.message}`); // عرض رسالة النجاح
+        },
+        error: function(error) {
+            alert("حدث خطأ: " + error.responseJSON.error);
+        }
+    });
+}
 
