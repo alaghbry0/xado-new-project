@@ -1,3 +1,13 @@
+// الحصول على بيانات المستخدم من Telegram Web App
+const telegram = window.Telegram.WebApp;
+const telegramId = telegram.initDataUnsafe.user.id; // Telegram ID
+const username = telegram.initDataUnsafe.user.username; // اسم المستخدم
+const fullName = telegram.initDataUnsafe.user.first_name + " " + telegram.initDataUnsafe.user.last_name; // الاسم الكامل
+
+console.log("Telegram ID:", telegramId);
+console.log("Username:", username);
+console.log("Full Name:", fullName);
+
 'use strict'
 $(document).ready(function () {
 
@@ -153,3 +163,59 @@ $(window).on('resize', function () {
         $('.main-container ').css('min-height', containerheight);
     }
 });
+
+
+function subscribe(subscriptionType) {
+    $.ajax({
+        url: "/api/subscribe",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            telegram_id: telegramId, // استخدم Telegram ID الديناميكي
+            subscription_type: subscriptionType
+        }),
+        success: function(response) {
+            alert(response.message); // عرض رسالة النجاح
+        },
+        error: function(error) {
+            alert("حدث خطأ: " + error.responseJSON.error);
+        }
+    });
+}
+
+
+
+function renewSubscription(subscriptionType) {
+    $.ajax({
+        url: "/api/renew",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            telegram_id: telegramId, // استخدم Telegram ID الديناميكي
+            subscription_type: subscriptionType
+        }),
+        success: function(response) {
+            alert(response.message); // عرض رسالة النجاح
+        },
+        error: function(error) {
+            alert("حدث خطأ: " + error.responseJSON.error);
+        }
+    });
+}
+
+
+
+function checkSubscription(telegramId) {
+    $.ajax({
+        url: `/api/check_subscription?telegram_id=${telegramId}`,
+        type: "GET",
+        success: function(response) {
+            console.log(response.subscriptions); // عرض بيانات الاشتراك في الكونسول
+        },
+        error: function(error) {
+            alert("حدث خطأ: " + error.responseJSON.message);
+        }
+    });
+}
+
+
