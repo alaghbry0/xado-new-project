@@ -1,0 +1,126 @@
+.btn{
+    &:focus{
+        outline: none;
+        box-shadow: none;
+    }   
+}
+.btn:not(.btn-lg):not(.btn-group-lg>.btn):not(.btn-sm):not(.btn-group-sm>.btn):not(.avatar){
+    padding: .657rem .75rem;
+    font-size: 14px;
+    line-height: 20px;
+
+    i{
+        font-size: 15px;
+        vertical-align: middle
+    }
+}
+.btn-lg, .btn-group-lg>.btn{
+    padding: 15px 15px;
+    line-height: 30px;
+    font-size: 18px;
+}
+.btn-link{
+    text-decoration: none;
+    color: $color-primary;
+    &:focus, &:hover{
+        color: darken($color-primary, 10%);
+    }
+}
+
+.btn-default{
+    background-color: $color-btn-secondary;
+    color: $text-btn-secondary;
+
+    &:hover{
+        background-color: darken($color-btn-secondary, 10%);
+        color: $text-btn-secondary;
+    }
+}
+
+.btn-primary{
+    background-color: $color-blue;
+    border-color: $color-blue
+}
+.btn-outline-primary{
+    border-color: $color-blue;
+    color: $color-blue;
+}
+.btn-danger{
+    background-color: $color-danger;
+    border-color: $color-danger
+}
+.btn-outline-danger{
+    border-color: $color-danger;
+    color: $color-danger;
+}
+.btn-outline-primary{
+    border-color: $color-blue;
+    color: $color-blue;
+}
+
+.btn-warning{
+    background-color: $color-warning;
+    border-color: $color-warning
+}
+.btn-outline-warning{
+    border-color: $color-warning;
+    color: $color-warning;
+}
+
+.btn-success{
+    background-color: $color-success;
+    border-color: $color-success
+}
+.btn-outline-success{
+    border-color: $color-success;
+    color: $color-success;
+}
+
+.btn-outline-purple{
+    background-color: transparent;
+    border: 1px solid  $color-purple;
+    color: $color-purple;;
+
+    &:focus,
+    &:hover,
+    &.active{
+        background-color: darken($color-purple, 10%);
+        color: white;
+    }
+}
+.btn-check{
+    &:checked{
+        &+.btn-outline-purple{
+            background-color: darken($color-purple, 10%);
+            color: white;
+        }
+    }
+}
+.btn-check{   
+    &:checked{
+        &+.background-btn{
+            opacity: 1;
+        }
+
+        &+label.btn{ 
+            &:focus{
+                outline: none;
+                box-shadow: none;
+                -webkit-box-shadow: none;
+                -moz-box-shadow: none;
+            }
+        }
+    }
+    &:focus{
+        &+label.btn{ 
+            outline: none;
+            box-shadow: none;
+            -webkit-box-shadow: none;
+            -moz-box-shadow: none;
+        }
+    }
+}
+.btn-check:checked+.btn-outline-primary, .btn-check:active+.btn-outline-primary, .btn-outline-primary:active, .btn-outline-primary.active, .btn-outline-primary.dropdown-toggle.show{
+    background-color:  $color-blue;
+    border-color:   $color-blue;
+}

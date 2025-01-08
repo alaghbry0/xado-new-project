@@ -1,0 +1,120 @@
+html.menu-open{
+    overflow: hidden;
+}
+body{
+    background: $color-secondary; 
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    overflow-y:auto; 
+}
+.dark-bg{
+    background: $color-primary url("../img/backgorund1.png") repeat-x top left;
+    color: $text-primary;
+    
+    .toast{
+        color: #000000;
+    }
+}
+
+.bg-default{
+    background: $color-primary !important;
+}
+.bg-primary{
+    background: $color-blue !important;
+}
+.bg-danger{
+    background: $color-danger !important;
+}
+.bg-success{
+    background: $color-success !important;
+}
+.bg-warning{
+    background: $color-warning !important;
+}
+.bg-lights{
+    background: lighten($color-secondary, 2%);
+}
+.bg-default-light, .alert-default{
+    background: lighten($color-primary, 27%) !important;
+    color: #000000;
+}
+.bg-primary-light, .alert-primary{
+    background: lighten($color-blue, 27%) !important;
+    color: #000000;
+}
+.bg-danger-light, .alert-danger{
+    background: lighten($color-danger, 25%) !important;
+    color: #000000;
+}
+.bg-success-light, .alert-success{
+    background: lighten($color-success, 30%) !important;
+    color: #000000;
+}
+.bg-warning-light, .alert-warning{
+    background: lighten($color-warning, 25%) !important;
+    color: #000000;
+}
+.bg-white-opac{
+    background-color: rgba(255, 255, 255, 0.25)
+}
+.bg-whiter{
+    background-color: #ffffff 
+}
+.bg-none{
+    .list-item{
+        background: transparent
+    }
+}
+.main-container{
+    padding-top: 15px;
+}
+
+.caret-none{
+    &.dropdown-toggle::after{
+        display: none
+    }
+}
+
+.progressCircle{
+    height: 80px;
+    width: 80px;
+    display: block;
+    margin: 0 auto;
+    position: relative;
+
+}
+.smallchart{
+    width: 100px;
+    height: 60px;
+}
+
+.progressbar-text{
+     text-align: center;
+     line-height: 12px;
+
+     small{
+         font-size: 11px;
+     }
+}
+
+::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+ 
+::-webkit-scrollbar-track {
+    background-color: rgba(255, 255, 255, 0.65); 
+    border-radius: 10px;
+}
+ 
+::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);    
+}
+
+@media screen and (max-width:640px){    
+    .dark-bg{
+        background: $color-primary url("../img/backgorund1.png") no-repeat top left;
+        background-size: 100% auto;        
+    }
+    
+}

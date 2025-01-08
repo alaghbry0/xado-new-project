@@ -1,0 +1,112 @@
+.form-floating {
+    background: transparent;
+    color: #000000;
+    border: 0;
+    position: relative;
+
+    & >.form-control:focus ~ label,
+    & >.form-control:not(:placeholder-shown) ~ label,
+    & >.form-select ~ label{
+        font-size: 13px;
+    }
+
+    .form-control{
+        background: #ffffff;    
+        border: 0;
+    }
+
+    &.is-valid{
+        .form-control{
+            border-right: 5px $success solid;
+        }
+    }
+    
+    &.is-invalid{
+        .form-control{
+            border-right: 5px $danger solid;
+        }
+    }
+}
+
+.form-control{
+    &:focus{
+        outline: none;
+        box-shadow: none;
+    }
+}
+
+.tooltip-btn{
+    background: none;
+    border: 0;
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    margin-top: -21px;
+    right: 5px;
+}
+
+.search-header{
+    position: relative;
+
+    .form-control{
+        padding: .625rem .75rem
+    }
+}
+.form-check-input:checked {
+    background-color: $color-primary;
+    border-color: $color-primary;
+}
+/* range picker slider */
+.noUi-target {
+    background: none;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+    background-color: darken($color-secondary, 2%);
+    border: 1px solid darken($color-secondary, 4%);
+
+    &.noUi-horizontal {
+        height: 10px;
+    }
+
+    .noUi-origin {
+        .noUi-handle {
+            height: 30px;
+            width: 30px;
+            top: -11px;
+            border:0;
+            box-shadow: 0 35x 7px rgba(0, 0, 0, 0.10);
+            -webkit-box-shadow: 0 5px 7px rgba(0, 0, 0, 0.10);
+            -moz-box-shadow: 0 5px 7px rgba(0, 0, 0, 0.10);
+            -ms-box-shadow: 0 5px 7px rgba(0, 0, 0, 0.10);
+            border-radius: 15px;
+            border: 1px solid $color-secondary;
+
+            &:before {
+                display: none
+            }
+
+            &:after {
+                display: none
+            }
+        }
+    }
+
+    .noUi-connect {
+        background: $color-primary;
+    }
+}
+
+.number-incrementer{
+    vertical-align: middle;
+    
+    .btn{
+        padding: 0 10px;
+        line-height: 18px;
+        margin: 0;
+    }
+    p{
+        line-height: 16px;
+        display: block;
+        font-size: 12px;
+    }
+}

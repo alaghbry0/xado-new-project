@@ -1,0 +1,25 @@
+.header{
+    padding: 8px 15px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 9;
+
+    
+    .menu-btn{
+        font-size: 20px;
+    }
+
+    &.active{
+        background: rgba( darken($color-secondary, 5%), 0.95);    
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+        -webkt-box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+    }
+}
+
+main{
+    &.has-header{
+        padding-top: 60px;
+    }
+}

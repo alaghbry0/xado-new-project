@@ -1,0 +1,15 @@
+.card{
+    border:none;
+
+    .card-header{
+        padding: .60rem 1rem;        
+        background: none;
+        border-color: $color-secondary;
+    }
+    
+    .card-footer{
+        padding: .60rem 1rem;        
+        background: none;
+        border-color: $color-secondary;
+    }
+}

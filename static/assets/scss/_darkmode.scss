@@ -1,0 +1,81 @@
+.dark-mode{
+    background-color: #222222;
+    color: #ffffff;
+
+    .btn-default{
+        background-color: $color-primary;
+    }
+
+    .form-control{
+        background-color: #000000;    
+    }
+
+    body{
+        background-color: #111111;    
+    }
+
+    .dark-bg{
+        .toast{
+            color: #ffffff;
+        }
+    }
+    
+    .card,
+    .list-group-item,
+    .bg-whiter,
+    .accordion-item,
+    .toast{
+        background-color: #333333 
+    }
+
+    .header.active,
+    .footer,
+    .btn-light,
+    .progress,
+    .noUi-target,
+    .filter .card .form-control,
+    .accordion-button,
+    .toast-header{
+        background-color: #444444; 
+    }
+
+    .filter .card, 
+    .dropdown-menu,.bg-lights{
+        background-color: #555555
+    }
+
+    body,    
+    .btn-light,
+    .form-floating,
+    .footer,
+    .form-control,
+    .footer .nav .nav-item .nav-link.active,
+    .list-group-item,
+    a.card-body, .text-normal, 
+    .dropdown-menu, 
+    .dropdown-menu .dropdown-item,
+    .accordion-button,
+    .toast-header{
+        color: #ffffff;
+    }
+
+    .text-secondary{
+        color: #ffffff !important;
+        opacity: 0.65;
+    }
+
+    .footer .nav .nav-item .nav-link,
+    .btn-link{
+        color: lighten($color-primary, 5%)
+    }
+
+    .card .card-header, 
+    .card .card-footer, 
+    .border,
+    .btn-light,
+    .noUi-target,
+    .modal-header,
+    .modal-footer{
+        border-color: #444444
+    }
+}
