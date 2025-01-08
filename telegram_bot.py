@@ -2,10 +2,10 @@ from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMar
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
 # توكن البوت الخاص بك
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+TOKEN = "7893339065:AAFIy3ooJ1yjobJwJTsnR9ZHWTlQfSf7REo"
 
 # رابط التطبيق المصغر
-WEB_APP_URL = "https://your-app.herokuapp.com/"
+WEB_APP_URL = "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/"
 
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
