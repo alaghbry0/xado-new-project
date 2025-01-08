@@ -12,13 +12,18 @@ console.log("Full Name:", fullName);
 // التحقق من أن Telegram WebApp متوفر
 if (window.Telegram && window.Telegram.WebApp) {
     const telegram = window.Telegram.WebApp;
-    const telegramId = telegram.initDataUnsafe?.user?.id; // Telegram ID
-    const username = telegram.initDataUnsafe?.user?.username; // اسم المستخدم
+    const telegramId = telegram.initDataUnsafe?.user?.id || null; // Telegram ID
+    const username = telegram.initDataUnsafe?.user?.username || "Unknown User";
     const fullName = `${telegram.initDataUnsafe?.user?.first_name || ''} ${telegram.initDataUnsafe?.user?.last_name || ''}`; // الاسم الكامل
 
     console.log("Telegram ID:", telegramId);
     console.log("Username:", username);
     console.log("Full Name:", fullName);
+
+    // تأكد من أن `telegramId` متوفر قبل استخدامه
+    if (!telegramId) {
+        alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
+    }
 } else {
     console.error("Telegram WebApp is not available. Please ensure the app is opened within Telegram.");
     alert("يرجى فتح التطبيق من داخل Telegram.");
