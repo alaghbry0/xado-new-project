@@ -185,17 +185,17 @@ function subscribe(subscriptionType) {
 
 
 
-function renewSubscription(subscriptionType) {
+function subscribe(subscriptionType) {
     $.ajax({
-        url: "/api/renew",
+        url: "/api/subscribe",
         type: "POST",
         contentType: "application/json",
         data: JSON.stringify({
-            telegram_id: telegramId, // استخدم Telegram ID الديناميكي
+            telegram_id: telegramId,
             subscription_type: subscriptionType
         }),
         success: function(response) {
-            alert(response.message); // عرض رسالة النجاح
+            alert(`✅ ${response.message}`); // عرض رسالة النجاح
         },
         error: function(error) {
             alert("حدث خطأ: " + error.responseJSON.error);
@@ -219,21 +219,5 @@ function checkSubscription(telegramId) {
 }
 console.log("Telegram ID:", telegramId);
 
-function subscribe(subscriptionType) {
-    $.ajax({
-        url: "/api/subscribe",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({
-            telegram_id: telegramId,
-            subscription_type: subscriptionType
-        }),
-        success: function(response) {
-            alert(`✅ ${response.message}`); // عرض رسالة النجاح
-        },
-        error: function(error) {
-            alert("حدث خطأ: " + error.responseJSON.error);
-        }
-    });
-}
+
 
