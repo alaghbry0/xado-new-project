@@ -192,11 +192,11 @@ $(window).on('resize', function () {
 // دالة الاشتراك
 function subscribe(subscriptionType) {
     if (!telegramId) {
-        alert("لا يمكن الاشتراك: Telegram ID غير متوفر. يرجى التأكد من تشغيل التطبيق داخل Telegram.");
+        alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
         return;
     }
 
-    showLoading(); // إظهار شريط التحميل
+    console.log("Subscription Type:", subscriptionType);
 
     $.ajax({
         url: "/api/subscribe",
@@ -208,20 +208,13 @@ function subscribe(subscriptionType) {
         }),
         success: function (response) {
             alert(`🎉 ${response.message}`);
-            // تحديث بيانات الصفحة ديناميكيًا إذا لزم الأمر
         },
         error: function (error) {
             console.error("Error details:", error);
             alert("حدث خطأ أثناء الاشتراك: " + (error.responseJSON?.error || "Unknown Error"));
-        },
-        complete: function () {
-            hideLoading(); // إخفاء شريط التحميل
         }
     });
 }
-
-
-
 
 // دالة التحقق من الاشتراك
 function checkSubscription(telegramId) {
@@ -275,20 +268,6 @@ function renewSubscription(subscriptionType) {
 }
 
 //ظهور شريط التحميل عند الاشتراك والتجديد
-
-
-@app.route('/api/verify', methods=['POST'])
-def verify_user():
-    data = request.json
-    telegram_id = data.get('telegramId')
-    username = data.get('username')
-
-    print(f"Received Telegram ID: {telegram_id}, Username: {username}")
-
-    if telegram_id:
-        return jsonify({"success": True, "message": "Telegram ID received successfully!"})
-    else:
-        return jsonify({"success": False, "message": "Telegram ID not found!"}), 400
 
 const tg = window.Telegram.WebApp;
 console.log("Init Data:", tg.initData);
