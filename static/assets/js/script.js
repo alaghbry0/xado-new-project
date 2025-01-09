@@ -278,6 +278,7 @@ function renewSubscription(subscriptionType) {
 }
 
 console.log("Telegram ID:", telegramId);
+console.log("Telegram WebApp Init Data:", window.Telegram?.WebApp?.initData);
 
 
 
