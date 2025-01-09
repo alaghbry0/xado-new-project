@@ -3,8 +3,11 @@ from flask import Flask, request, jsonify, render_template
 
 import sqlite3
 from datetime import datetime, timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # تمكين CORS لجميع الطلبات
+
 
 # بيانات الاشتراكات الوهمية
 subscriptions = [

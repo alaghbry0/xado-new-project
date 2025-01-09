@@ -6,32 +6,23 @@ let fullName = null;
 
 try {
     if (window.Telegram && window.Telegram.WebApp) {
-        const telegram = window.Telegram.WebApp;
+    const telegram = window.Telegram.WebApp;
 
-        // تحقق إذا كانت بيانات المستخدم موجودة
-        if (telegram.initDataUnsafe?.user) {
-            telegramId = telegram.initDataUnsafe.user.id || null;
-            username = telegram.initDataUnsafe.user.username || "Unknown User";
-            fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
+    // التحقق من بيانات المستخدم
+    if (telegram.initDataUnsafe && telegram.initDataUnsafe.user) {
+        const telegramId = telegram.initDataUnsafe.user.id || null;
+        const username = telegram.initDataUnsafe.user.username || "Unknown User";
+        const fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
 
-            console.log("Telegram ID:", telegramId);
-            console.log("Username:", username);
-            console.log("Full Name:", fullName);
-        } else {
-            console.warn("No user data found in initDataUnsafe.");
-            alert("لا يمكن التعرف على بيانات المستخدم. يرجى التأكد من فتح التطبيق داخل Telegram.");
-        }
+        console.log("Telegram ID:", telegramId);
+        console.log("Username:", username);
+        console.log("Full Name:", fullName);
     } else {
-        console.error("Telegram WebApp is not available.");
         alert("يرجى فتح التطبيق من داخل Telegram.");
     }
-} catch (error) {
-    console.error("Error initializing Telegram WebApp:", error);
-    alert("حدث خطأ أثناء التحقق من Telegram WebApp.");
+} else {
+    alert("يرجى التأكد من تشغيل التطبيق داخل Telegram WebApp.");
 }
-
-
-
 
 $(document).ready(function () {
 
@@ -277,8 +268,12 @@ function renewSubscription(subscriptionType) {
     });
 }
 
-console.log("Telegram ID:", telegramId);
-console.log("Telegram WebApp Init Data:", window.Telegram?.WebApp?.initData);
+const tg = window.Telegram.WebApp;
+console.log("Init Data:", tg.initData);
+
+if (!tg.initData) {
+    alert("يرجى فتح التطبيق من داخل Telegram.");
+}
 
 
 

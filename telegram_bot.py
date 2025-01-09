@@ -1,7 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import sqlite3
-from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
@@ -15,15 +14,21 @@ WEB_APP_URL = "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/"
 
 # وظيفة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("فتح التطبيق المصغر", web_app=WebAppInfo(url=WEB_APP_URL))]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    try:
+        # إعداد زر التطبيق المصغر
+        keyboard = [
+            [InlineKeyboardButton("فتح التطبيق المصغر", web_app=WebAppInfo(url=WEB_APP_URL))]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
-        "مرحبًا بك! يمكنك إدارة اشتراكاتك عبر التطبيق المصغر:",
-        reply_markup=reply_markup
-    )
+        # إرسال الرسالة مع الزر
+        await update.message.reply_text(
+            "مرحبًا بك! يمكنك إدارة اشتراكاتك عبر التطبيق المصغر:",
+            reply_markup=reply_markup
+        )
+    except Exception as e:
+        logging.error(f"Error in /start command: {e}")
+        await update.message.reply_text("حدث خطأ أثناء إعداد التطبيق المصغر. يرجى المحاولة لاحقًا.")
 
 # وظيفة الاشتراك
 async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
