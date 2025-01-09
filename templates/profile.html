@@ -69,7 +69,7 @@
                     <p class="text-muted small">ينتهي الاشتراك: {{ subscription.expiry_date }}</p>
                 </div>
                 <div class="subscription-action">
-                    <button class="btn btn-success btn-sm" onclick="renewSubscription('{{ subscription.name }}')">التجديد الآن</button>
+                    <button class="btn btn-success btn-sm renew-btn" data-subscription="{{ subscription.name }}">التجديد الآن</button>
 
                 </div>
             </div>
