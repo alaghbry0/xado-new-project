@@ -1,37 +1,49 @@
 'use strict'
 // التحقق من أن Telegram WebApp متوفر
-let telegramId = null;
-let username = null;
-let fullName = null;
-
-try {
+// Telegram WebApp Initialization
+window.onload = function () {
     if (window.Telegram && window.Telegram.WebApp) {
-        const telegram = window.Telegram.WebApp;
-        telegram.init(); // تهيئة Telegram WebApp
+        try {
+            const telegram = window.Telegram.WebApp;
 
-        // التحقق من بيانات المستخدم
-        if (telegram.initDataUnsafe?.user) {
-            telegramId = telegram.initDataUnsafe.user.id || null;
-            username = telegram.initDataUnsafe.user.username || "Unknown User";
-            fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
+            // Telegram WebApp API readiness
+            telegram.ready(); // Inform Telegram that the web app is ready
+            telegram.expand(); // Optional: Expand to full height
+            console.log("Telegram WebApp initialized successfully!");
 
-            console.log("Telegram ID:", telegramId);
-            console.log("Username:", username);
-            console.log("Full Name:", fullName);
+            // Fetch Telegram User Data
+            const userData = telegram.initDataUnsafe?.user;
+            if (userData) {
+                const telegramId = userData.id;
+                const username = userData.username || "Unknown User";
+                const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
 
-            if (!telegramId) {
-                alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
+                console.log("Telegram ID:", telegramId);
+                console.log("Username:", username);
+                console.log("Full Name:", fullName);
+
+                // Example: Display user info in the UI
+                const userNameElement = document.getElementById("user-name");
+                const userUsernameElement = document.getElementById("user-username");
+
+                if (userNameElement) {
+                    userNameElement.textContent = fullName;
+                }
+                if (userUsernameElement) {
+                    userUsernameElement.textContent = username;
+                }
+            } else {
+                console.warn("User data not available.");
+                alert("يرجى فتح التطبيق من داخل Telegram.");
             }
-        } else {
-            alert("يرجى فتح التطبيق من داخل Telegram.");
+        } catch (error) {
+            console.error("Error initializing Telegram WebApp:", error);
         }
     } else {
-        alert("يرجى التأكد من تشغيل التطبيق داخل Telegram WebApp.");
+        console.warn("Telegram WebApp API not available.");
+        alert("يرجى تشغيل التطبيق من داخل Telegram.");
     }
-} catch (error) {
-    console.error("Error initializing Telegram WebApp:", error);
-}
-
+};
 
 $(document).ready(function () {
 
@@ -199,7 +211,15 @@ $(window).on('resize', function () {
 
 
 // دالة الاشتراك
-function subscribe(subscriptionType) {
+window.subscribe = function (subscriptionType) {
+    const telegram = window.Telegram?.WebApp;
+
+    if (!telegram) {
+        alert("يرجى تشغيل التطبيق من داخل Telegram.");
+        return;
+    }
+
+    const telegramId = telegram.initDataUnsafe?.user?.id;
     if (!telegramId) {
         alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
         return;
@@ -223,7 +243,8 @@ function subscribe(subscriptionType) {
             alert("حدث خطأ أثناء الاشتراك: " + (error.responseJSON?.error || "Unknown Error"));
         }
     });
-}
+};
+
 
 
 
@@ -279,9 +300,30 @@ function renewSubscription(subscriptionType) {
 }
 
 //ظهور شريط التحميل عند الاشتراك والتجديد
+function showLoading() {
+    const loader = document.getElementById("loader");
+    if (loader) {
+        loader.style.display = "block";
+    }
+}
+
+function hideLoading() {
+    const loader = document.getElementById("loader");
+    if (loader) {
+        loader.style.display = "none";
+    }
+}
+
+
+
+
+
 
 const tg = window.Telegram.WebApp;
 console.log("Init Data:", tg.initData);
+console.log(typeof subscribe); // يجب أن يظهر "function"
+console.log("Telegram ID is:", telegramId);
+
 
 if (!tg.initData) {
     alert("يرجى فتح التطبيق من داخل Telegram.");
