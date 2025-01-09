@@ -1,5 +1,4 @@
 import sqlite3
-
 def view_data():
     conn = sqlite3.connect("database/database.db")
     cursor = conn.cursor()

@@ -4,11 +4,11 @@ let telegramId = null;
 let username = null;
 let fullName = null;
 
-if (window.Telegram && window.Telegram.WebApp) {
+if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user) {
     const telegram = window.Telegram.WebApp;
-    telegramId = telegram.initDataUnsafe?.user?.id || null;
-    username = telegram.initDataUnsafe?.user?.username || "Unknown User";
-    fullName = `${telegram.initDataUnsafe?.user?.first_name || ''} ${telegram.initDataUnsafe?.user?.last_name || ''}`;
+    telegramId = telegram.initDataUnsafe.user.id || null;
+    username = telegram.initDataUnsafe.user.username || "Unknown User";
+    fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
 
     console.log("Telegram ID:", telegramId);
     console.log("Username:", username);
@@ -16,6 +16,7 @@ if (window.Telegram && window.Telegram.WebApp) {
 } else {
     alert("يرجى فتح التطبيق من داخل Telegram.");
 }
+
 
 
 $(document).ready(function () {
@@ -186,7 +187,7 @@ $(window).on('resize', function () {
 // دالة الاشتراك
 function subscribe(subscriptionType) {
     if (!telegramId) {
-        alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
+        alert("لا يمكن الاشتراك: Telegram ID غير متوفر. يرجى التأكد من تشغيل التطبيق داخل Telegram.");
         return;
     }
 

@@ -13,14 +13,14 @@ subscriptions = [
         "name": "Forex VIP Channel",
         "price": 5,
         "details": "اشترك في قناة الفوركس للحصول على توصيات مميزة.",
-        "image_url": "assets/images/forex_channel.jpg"
+        "image_url": "assets/img/forex_channel.jpg"
     },
     {
         "id": 2,
         "name": "Crypto VIP Channel",
         "price": 10,
         "details": "اشترك في قناة الكريبتو للحصول على توصيات مميزة.",
-        "image_url": "assets/images/crypto_channel.jpg"
+        "image_url": "assets/img/crypto_channel.jpg"
     }
 ]
 
@@ -172,17 +172,17 @@ def shop():
 def profile():
     user = {
         "name": "محمد أحمد",
-        "profile_image": "assets/images/user-placeholder.jpg",
+        "profile_image": "assets/img/user-placeholder.jpg",
         "subscriptions": [
             {
                 "name": "Forex VIP Channel",
                 "expiry_date": "2025-02-01",
-                "image_url": "assets/images/forex_channel.jpg"
+                "image_url": "assets/img/forex_channel.jpg"
             },
             {
                 "name": "Crypto VIP Channel",
                 "expiry_date": "2025-02-15",
-                "image_url": "assets/images/crypto_channel.jpg"
+                "image_url": "assets/img/crypto_channel.jpg"
             }
         ]
     }
