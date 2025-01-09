@@ -1,15 +1,13 @@
-'use strict'
-// التحقق من أن Telegram WebApp متوفر
+'use strict';
 // Telegram WebApp Initialization
-
 window.onload = function () {
-    let telegramId = null;
     const tg = window.Telegram?.WebApp;
+    let telegramId = null;
 
     if (tg) {
         try {
-            tg.ready();
-            tg.expand();
+            tg.ready(); // Inform Telegram that the app is ready
+            tg.expand(); // Expand the WebApp to full height
             console.log("Telegram WebApp initialized successfully!");
 
             const userData = tg.initDataUnsafe?.user;
@@ -227,7 +225,10 @@ window.subscribe = function (subscriptionType) {
     }
 
     console.log("Subscription Type:", subscriptionType);
-
+    console.log("Data sent to server:", {
+        telegram_id: telegramId,
+        subscription_type: subscriptionType
+    });
     // معالجة الطلب باستخدام $.ajax
     $.ajax({
         url: "/api/subscribe",
@@ -247,7 +248,13 @@ window.subscribe = function (subscriptionType) {
     });
 };
 
-
+// إضافة الأحداث لأزرار الاشتراك
+document.querySelectorAll('.subscribe-btn').forEach(button => {
+    button.addEventListener('click', function () {
+        const subscriptionType = this.getAttribute('data-subscription');
+        subscribe(subscriptionType);
+    });
+});
 
 
 
@@ -287,6 +294,11 @@ window.renewSubscription = function (subscriptionType) {
         return;
     }
 
+    console.log("Data sent to server for renewal:", {
+        telegram_id: telegramId,
+        subscription_type: subscriptionType
+    });
+
     showLoading(); // إظهار شريط التحميل
 
     // معالجة الطلب باستخدام $.ajax
@@ -312,6 +324,14 @@ window.renewSubscription = function (subscriptionType) {
         }
     });
 };
+
+// إضافة الأحداث لأزرار التجديد
+document.querySelectorAll('.renew-btn').forEach(button => {
+    button.addEventListener('click', function () {
+        const subscriptionType = this.getAttribute('data-subscription');
+        renewSubscription(subscriptionType);
+    });
+});
 
 // التعامل مع النقرات للأزرار
 document.addEventListener("DOMContentLoaded", function () {
@@ -346,10 +366,6 @@ function hideLoading() {
         loader.style.display = "none";
     }
 }
-
-
-
-
 
 
 const tg = window.Telegram.WebApp;
