@@ -6,26 +6,19 @@ let fullName = null;
 
 try {
     if (window.Telegram && window.Telegram.WebApp) {
-        const telegram = window.Telegram.WebApp;
+    const telegram = window.Telegram.WebApp;
+    telegram.init();
+    telegramId = telegram.initDataUnsafe?.user?.id || null;
 
-        // التحقق من بيانات المستخدم
-        if (telegram.initDataUnsafe && telegram.initDataUnsafe.user) {
-            telegramId = telegram.initDataUnsafe.user.id || null;
-            username = telegram.initDataUnsafe.user.username || "Unknown User";
-            fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
-
-            console.log("Telegram ID:", telegramId);
-            console.log("Username:", username);
-            console.log("Full Name:", fullName);
-        } else {
-            alert("يرجى فتح التطبيق من داخل Telegram.");
-        }
+    if (!telegramId) {
+        alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
     } else {
-        alert("يرجى التأكد من تشغيل التطبيق داخل Telegram WebApp.");
+        console.log("Telegram ID:", telegramId);
     }
-} catch (error) {
-    console.error("Error initializing Telegram WebApp:", error);
+} else {
+    alert("يرجى تشغيل التطبيق من داخل Telegram.");
 }
+
 
 
 $(document).ready(function () {
@@ -219,6 +212,7 @@ function subscribe(subscriptionType) {
         }
     });
 }
+
 
 
 // دالة التحقق من الاشتراك
