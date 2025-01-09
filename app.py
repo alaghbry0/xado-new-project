@@ -1,9 +1,12 @@
 import os
 from flask import Flask, request, jsonify, render_template
-
+import logging
 import sqlite3
 from datetime import datetime, timedelta
 from flask_cors import CORS
+
+# إعداد تسجيل الأخطاء والمعلومات
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 CORS(app)  # تمكين CORS لجميع الطلبات
@@ -31,71 +34,81 @@ subscriptions = [
 # نقطة API للاشتراك
 @app.route("/api/subscribe", methods=["POST"])
 def subscribe():
-    data = request.json
-    print("Received data:", data)  # طباعة البيانات المستلمة
-    telegram_id = data.get("telegram_id")
-    subscription_type = data.get("subscription_type")
-    print(f"Received telegram_id: {telegram_id}")
-    print(f"Received subscription_type: {subscription_type}")
+    try:
+        data = request.json
+        logging.info(f"Received data: {data}")  # تسجيل البيانات المستلمة
 
-    if not telegram_id or not subscription_type:
-        return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
+        telegram_id = data.get("telegram_id")
+        subscription_type = data.get("subscription_type")
+        logging.debug(f"Received telegram_id: {telegram_id}")
+        logging.debug(f"Received subscription_type: {subscription_type}")
 
-    # التحقق من القيم المرسلة
-    valid_subscription_types = ["Forex VIP Channel", "Crypto VIP Channel"]
-    if subscription_type not in valid_subscription_types:
-        return jsonify({"error": "Invalid subscription type"}), 400
+        if not telegram_id or not subscription_type:
+            return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
 
-    if not telegram_id or not subscription_type:
-        return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
+        # التحقق من القيم المرسلة
+        valid_subscription_types = ["Forex VIP Channel", "Crypto VIP Channel"]
+        if subscription_type not in valid_subscription_types:
+            logging.warning("Invalid subscription type provided.")
+            return jsonify({"error": "Invalid subscription type"}), 400
 
-    conn = sqlite3.connect("database/database.db")
-    cursor = conn.cursor()
+        conn = sqlite3.connect("database/database.db", timeout=10)  # إضافة مهلة للاتصال
+        cursor = conn.cursor()
 
-    # إضافة المستخدم إلى قاعدة البيانات إذا لم يكن موجودًا
-    cursor.execute("""
-        INSERT OR IGNORE INTO users (telegram_id)
-        VALUES (?)
-    """, (telegram_id,))
-
-    # الحصول على user_id
-    cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
-    user = cursor.script.jsone()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    user_id = user[0]
-
-    # التحقق من الاشتراك الحالي
-    cursor.execute("""
-        SELECT expiry_date FROM subscriptions
-        WHERE user_id = ? AND subscription_type = ?
-    """, (user_id, subscription_type))
-    existing_subscription = cursor.fetchone()
-
-    if existing_subscription:
-        # إذا كان الاشتراك موجودًا، أضف 30 يومًا
-        current_expiry = datetime.strptime(existing_subscription[0], "%Y-%m-%d")
-        new_expiry = (current_expiry + timedelta(days=30)).strftime("%Y-%m-%d")
+        # إضافة المستخدم إلى قاعدة البيانات إذا لم يكن موجودًا
         cursor.execute("""
-            UPDATE subscriptions
-            SET expiry_date = ?
+            INSERT OR IGNORE INTO users (telegram_id)
+            VALUES (?)
+        """, (telegram_id,))
+
+        # الحصول على user_id
+        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        user = cursor.fetchone()
+        if not user:
+            logging.error("User not found in the database.")
+            return jsonify({"error": "User not found"}), 404
+
+        user_id = user[0]
+
+        # التحقق من الاشتراك الحالي
+        cursor.execute("""
+            SELECT expiry_date FROM subscriptions
             WHERE user_id = ? AND subscription_type = ?
-        """, (new_expiry, user_id, subscription_type))
-        message = f"تم تجديد اشتراك {subscription_type} حتى {new_expiry}"
-    else:
-        # إضافة اشتراك جديد
-        new_expiry = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
-        cursor.execute("""
-            INSERT INTO subscriptions (user_id, subscription_type, expiry_date)
-            VALUES (?, ?, ?)
-        """, (user_id, subscription_type, new_expiry))
-        message = f"تم الاشتراك في {subscription_type} بنجاح! ينتهي الاشتراك في {new_expiry}"
+        """, (user_id, subscription_type))
+        existing_subscription = cursor.fetchone()
 
-    conn.commit()
-    conn.close()
+        if existing_subscription:
+            # إذا كان الاشتراك موجودًا، أضف 30 يومًا
+            current_expiry = datetime.strptime(existing_subscription[0], "%Y-%m-%d")
+            new_expiry = (current_expiry + timedelta(days=30)).strftime("%Y-%m-%d")
+            cursor.execute("""
+                UPDATE subscriptions
+                SET expiry_date = ?
+                WHERE user_id = ? AND subscription_type = ?
+            """, (new_expiry, user_id, subscription_type))
+            message = f"تم تجديد اشتراك {subscription_type} حتى {new_expiry}"
+        else:
+            # إضافة اشتراك جديد
+            new_expiry = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+            cursor.execute("""
+                INSERT INTO subscriptions (user_id, subscription_type, expiry_date)
+                VALUES (?, ?, ?)
+            """, (user_id, subscription_type, new_expiry))
+            message = f"تم الاشتراك في {subscription_type} بنجاح! ينتهي الاشتراك في {new_expiry}"
 
-    return jsonify({"message": message, "expiry_date": new_expiry}), 200
+        conn.commit()
+        conn.close()
+
+        logging.info(f"Operation successful: {message}")
+        return jsonify({"message": message, "expiry_date": new_expiry}), 200
+
+    except sqlite3.OperationalError as e:
+        logging.error(f"Database error: {str(e)}")
+        return jsonify({"error": "Database error, please try again later."}), 500
+
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred, please try again later."}), 500
 
 # نقطة API للتجديد
 @app.route("/api/renew", methods=["POST"])

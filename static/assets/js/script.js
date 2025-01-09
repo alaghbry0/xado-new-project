@@ -1,13 +1,14 @@
 'use strict';
 // Telegram WebApp Initialization
+let telegramId = null; // تعريف telegramId كمتحول عام
+
 window.onload = function () {
     const tg = window.Telegram?.WebApp;
-    let telegramId = null;
 
     if (tg) {
         try {
-            tg.ready(); // Inform Telegram that the app is ready
-            tg.expand(); // Expand the WebApp to full height
+            tg.ready(); // إبلاغ Telegram بأن التطبيق جاهز
+            tg.expand(); // توسيع واجهة التطبيق
             console.log("Telegram WebApp initialized successfully!");
 
             const userData = tg.initDataUnsafe?.user;
@@ -20,7 +21,7 @@ window.onload = function () {
                 console.log("Username:", username);
                 console.log("Full Name:", fullName);
 
-                // Example: Display user info in the UI
+                // عرض بيانات المستخدم في واجهة المستخدم
                 const userNameElement = document.getElementById("user-name");
                 const userUsernameElement = document.getElementById("user-username");
 
@@ -42,6 +43,9 @@ window.onload = function () {
         alert("يرجى تشغيل التطبيق من داخل Telegram.");
     }
 };
+
+console.log("Global Telegram ID:", telegramId); // متاح الآن في أي جزء من الكود
+
 
 
 $(document).ready(function () {
@@ -229,24 +233,53 @@ window.subscribe = function (subscriptionType) {
         telegram_id: telegramId,
         subscription_type: subscriptionType
     });
-    // معالجة الطلب باستخدام $.ajax
-    $.ajax({
-        url: "/api/subscribe",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({
-            telegram_id: telegramId,
-            subscription_type: subscriptionType
-        }),
-        success: function (response) {
-            alert(`🎉 ${response.message}`);
-        },
-        error: function (error) {
-            console.error("Error in subscription:", error);
-            alert("حدث خطأ أثناء الاشتراك: " + (error.responseJSON?.error || "Unknown Error"));
-        }
-    });
+    // معالجة الطلب باستخدام
+    const base = {
+    telegram_id: telegramId,
+    subscription_type: subscriptionType
 };
+
+console.log("Data being sent for subscription:", base);
+
+// إنشاء العملية
+let result = subscribeToApi(base); // دالة جديدة
+
+if (result instanceof Promise) {
+    result
+        .then((response) => {
+            console.log("Subscription response:", response);
+            alert(`🎉 ${response.message}`);
+        })
+        .catch((error) => {
+            console.error("Error during subscription:", error);
+            alert("حدث خطأ أثناء الاشتراك: " + (error.message || "Unknown Error"));
+        });
+} else {
+    console.warn("Subscription did not return a Promise.");
+}
+
+
+//داله subscribeToApi
+function subscribeToApi(base) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/api/subscribe",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(base),
+            success: function (response) {
+                resolve(response);
+            },
+            error: function (error) {
+                console.error("AJAX Error:", error);
+                reject(new Error(error.responseJSON?.error || "Unknown Error"));
+            }
+        });
+    });
+}
+
+
+
 
 // إضافة الأحداث لأزرار الاشتراك
 document.querySelectorAll('.subscribe-btn').forEach(button => {
