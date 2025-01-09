@@ -6,19 +6,31 @@ let fullName = null;
 
 try {
     if (window.Telegram && window.Telegram.WebApp) {
-    const telegram = window.Telegram.WebApp;
-    telegram.init();
-    telegramId = telegram.initDataUnsafe?.user?.id || null;
+        const telegram = window.Telegram.WebApp;
+        telegram.init(); // تهيئة Telegram WebApp
 
-    if (!telegramId) {
-        alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
+        // التحقق من بيانات المستخدم
+        if (telegram.initDataUnsafe?.user) {
+            telegramId = telegram.initDataUnsafe.user.id || null;
+            username = telegram.initDataUnsafe.user.username || "Unknown User";
+            fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
+
+            console.log("Telegram ID:", telegramId);
+            console.log("Username:", username);
+            console.log("Full Name:", fullName);
+
+            if (!telegramId) {
+                alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
+            }
+        } else {
+            alert("يرجى فتح التطبيق من داخل Telegram.");
+        }
     } else {
-        console.log("Telegram ID:", telegramId);
+        alert("يرجى التأكد من تشغيل التطبيق داخل Telegram WebApp.");
     }
-} else {
-    alert("يرجى تشغيل التطبيق من داخل Telegram.");
+} catch (error) {
+    console.error("Error initializing Telegram WebApp:", error);
 }
-
 
 
 $(document).ready(function () {

@@ -60,7 +60,7 @@ def subscribe():
 
     # الحصول على user_id
     cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
-    user = cursor.fetchone()
+    user = cursor.script.jsone()
     if not user:
         return jsonify({"error": "User not found"}), 404
 
