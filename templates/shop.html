@@ -43,7 +43,8 @@
     {% for plan in subscriptions %}
     <div class="col-12 col-md-6 mb-4">
         <div class="card shadow-sm plan-card">
-            <img src="{{ url_for('static', filename=image_url) }}" class="card-img-top plan-image" alt="{{ name }}">
+            <img src="{{ url_for('static', filename=plan.image_url) }}" class="card-img-top plan-image" alt="{{ plan.name }}">
+
             <div class="card-body">
                 <h5 class="card-title">{{ name | e }}</h5>
                 <p class="card-text text-muted">{{ plan.details | e }}</p>
@@ -99,7 +100,6 @@
     <!-- Footer Ends -->
 
     <!-- Scripts -->
-    <script src="{{ url_for('static', filename='assets/js/jquery-3.3.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/script.js') }}"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 

@@ -6,23 +6,27 @@ let fullName = null;
 
 try {
     if (window.Telegram && window.Telegram.WebApp) {
-    const telegram = window.Telegram.WebApp;
+        const telegram = window.Telegram.WebApp;
 
-    // التحقق من بيانات المستخدم
-    if (telegram.initDataUnsafe && telegram.initDataUnsafe.user) {
-        const telegramId = telegram.initDataUnsafe.user.id || null;
-        const username = telegram.initDataUnsafe.user.username || "Unknown User";
-        const fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
+        // التحقق من بيانات المستخدم
+        if (telegram.initDataUnsafe && telegram.initDataUnsafe.user) {
+            telegramId = telegram.initDataUnsafe.user.id || null;
+            username = telegram.initDataUnsafe.user.username || "Unknown User";
+            fullName = `${telegram.initDataUnsafe.user.first_name || ''} ${telegram.initDataUnsafe.user.last_name || ''}`;
 
-        console.log("Telegram ID:", telegramId);
-        console.log("Username:", username);
-        console.log("Full Name:", fullName);
+            console.log("Telegram ID:", telegramId);
+            console.log("Username:", username);
+            console.log("Full Name:", fullName);
+        } else {
+            alert("يرجى فتح التطبيق من داخل Telegram.");
+        }
     } else {
-        alert("يرجى فتح التطبيق من داخل Telegram.");
+        alert("يرجى التأكد من تشغيل التطبيق داخل Telegram WebApp.");
     }
-} else {
-    alert("يرجى التأكد من تشغيل التطبيق داخل Telegram WebApp.");
+} catch (error) {
+    console.error("Error initializing Telegram WebApp:", error);
 }
+
 
 $(document).ready(function () {
 
@@ -216,6 +220,7 @@ function subscribe(subscriptionType) {
     });
 }
 
+
 // دالة التحقق من الاشتراك
 function checkSubscription(telegramId) {
     if (!telegramId) {
@@ -275,7 +280,3 @@ console.log("Init Data:", tg.initData);
 if (!tg.initData) {
     alert("يرجى فتح التطبيق من داخل Telegram.");
 }
-
-
-
-
