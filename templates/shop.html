@@ -39,17 +39,17 @@
     {% for plan in subscriptions %}
     <div class="col-12 col-md-6 mb-4">
         <div class="card shadow-sm plan-card">
-            <img src="{{ url_for('static', filename=plan.image_url) }}" class="card-img-top plan-image" alt="{{ plan.name }}">
+            <img src="{{ url_for('static', filename=image_url) }}" class="card-img-top plan-image" alt="{{ name }}">
             <div class="card-body">
-                <h5 class="card-title">{{ plan.name | e }}</h5>
+                <h5 class="card-title">{{ name | e }}</h5>
                 <p class="card-text text-muted">{{ plan.details | e }}</p>
 
-                <h4 class="text-primary mb-3">${{ plan.price }}</h4>
+                <h4 class="text-primary mb-3">${{ price }}</h4>
                 <div class="d-flex flex-wrap justify-content-center">
                     <button class="btn btn-primary mx-2 my-1"
-                            onclick="subscribe(encodeURIComponent('{{ plan.name }}'))">USDT (TON)</button>
+                            onclick="subscribe(encodeURIComponent('{{ name }}'))">USDT (TON)</button>
                     <button class="btn btn-secondary mx-2 my-1"
-                            onclick="subscribe(encodeURIComponent('{{ plan.name }}'))">Telegram Stars</button>
+                            onclick="subscribe(encodeURIComponent('{{ name }}'))">Telegram Stars</button>
 
                 </div>
             </div>

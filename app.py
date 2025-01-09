@@ -10,28 +10,34 @@ app = Flask(__name__)
 subscriptions = [
     {
         "id": 1,
-        "plan.name": "Forex VIP Channel",
+        "name": "Forex VIP Channel",
         "price": 5,
         "details": "اشترك في قناة الفوركس للحصول على توصيات مميزة.",
         "image_url": "assets/images/forex_channel.jpg"
     },
     {
         "id": 2,
-        "plan.name": "Crypto VIP Channel",
+        "name": "Crypto VIP Channel",
         "price": 10,
         "details": "اشترك في قناة الكريبتو للحصول على توصيات مميزة.",
         "image_url": "assets/images/crypto_channel.jpg"
     }
 ]
 
+
 # نقطة API للاشتراك
 @app.route("/api/subscribe", methods=["POST"])
 def subscribe():
-    data = request.json  # استلام البيانات من واجهة المستخدم
+    data = request.json
     telegram_id = data.get("telegram_id")
     subscription_type = data.get("subscription_type")
     print(f"Received telegram_id: {telegram_id}")
     print(f"Received subscription_type: {subscription_type}")
+
+    # التحقق من القيم المرسلة
+    valid_subscription_types = ["Forex VIP Channel", "Crypto VIP Channel"]
+    if subscription_type not in valid_subscription_types:
+        return jsonify({"error": "Invalid subscription type"}), 400
 
     if not telegram_id or not subscription_type:
         return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
@@ -169,12 +175,12 @@ def profile():
         "profile_image": "assets/images/user-placeholder.jpg",
         "subscriptions": [
             {
-                "plan.name": "Forex VIP Channel",
+                "name": "Forex VIP Channel",
                 "expiry_date": "2025-02-01",
                 "image_url": "assets/images/forex_channel.jpg"
             },
             {
-                "plan.name": "Crypto VIP Channel",
+                "name": "Crypto VIP Channel",
                 "expiry_date": "2025-02-15",
                 "image_url": "assets/images/crypto_channel.jpg"
             }

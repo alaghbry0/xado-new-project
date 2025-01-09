@@ -1,12 +1,6 @@
-
-console.log("Telegram ID:", telegramId);
-console.log("Username:", username);
-console.log("Full Name:", fullName);
-
 'use strict'
 // التحقق من أن Telegram WebApp متوفر
 let telegramId = null;
-
 let username = null;
 let fullName = null;
 
@@ -198,6 +192,10 @@ function subscribe(subscriptionType) {
 
     console.log("Subscription Type:", subscriptionType);
     console.log("Telegram ID:", telegramId);
+    console.log("Data sent:", {
+        telegram_id: telegramId,
+        subscription_type: subscriptionType
+    });
 
     $.ajax({
         url: "/api/subscribe",
@@ -211,16 +209,20 @@ function subscribe(subscriptionType) {
             alert(`🎉 ${response.message}`);
         },
         error: function(error) {
-    console.error("Error details:", error);
-    alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
-}
-
+            console.error("Error details:", error);
+            alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
+        }
     });
 }
 
 
 // دالة التحقق من الاشتراك
 function checkSubscription(telegramId) {
+    if (!telegramId) {
+    alert("لا يمكن تنفيذ العملية: Telegram ID غير متوفر.");
+    return;
+}
+
     $.ajax({
         url: `/api/check_subscription?telegram_id=${telegramId}`,
         type: "GET",
@@ -236,6 +238,11 @@ function checkSubscription(telegramId) {
 }
 
 function renewSubscription(subscriptionType) {
+    if (!telegramId) {
+    alert("لا يمكن تنفيذ العملية: Telegram ID غير متوفر.");
+    return;
+}
+
     $.ajax({
         url: "/api/renew",
         type: "POST",
