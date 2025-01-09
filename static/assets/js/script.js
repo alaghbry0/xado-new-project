@@ -268,30 +268,9 @@ function renewSubscription(subscriptionType) {
     });
 }
 
-const tg = window.Telegram.WebApp;
-console.log("Init Data:", tg.initData);
 
-if (!tg.initData) {
-    alert("يرجى فتح التطبيق من داخل Telegram.");
-}
-
-fetch('/api/verify', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-        telegramId: telegram.initDataUnsafe.user.id,
-        username: telegram.initDataUnsafe.user.username
-    })
-})
-.then(response => response.json())
-.then(data => {
-    console.log("Server Response:", data);
-})
-.catch(error => {
-    console.error("Error:", error);
-});
+console.log("Telegram ID:", telegramId);
+console.log("Telegram WebApp Init Data:", window.Telegram?.WebApp?.initData);
 
 
 
