@@ -34,6 +34,10 @@
 
     <!-- Main Content -->
     <main class="h-100 has-footer">
+        <div id="loader" style="display:none; text-align:center;">
+         <p>جاري معالجة طلبك...</p>
+         </div>
+
         <div class="main-container container text-center">
            <div class="row">
     {% for plan in subscriptions %}
@@ -46,10 +50,8 @@
 
                 <h4 class="text-primary mb-3">${{ price }}</h4>
                 <div class="d-flex flex-wrap justify-content-center">
-                    <button class="btn btn-primary mx-2 my-1"
-                            onclick="subscribe(encodeURIComponent('{{ name }}'))">USDT (TON)</button>
-                    <button class="btn btn-secondary mx-2 my-1"
-                            onclick="subscribe(encodeURIComponent('{{ name }}'))">Telegram Stars</button>
+                    <button class="btn btn-primary mx-2 my-1" onclick="subscribe('{{ plan.name | e }}')">USDT (TON)</button>
+                    <button class="btn btn-primary mx-2 my-1" onclick="subscribe('{{ plan.name | e }}')">Telegram Stars</button>
 
                 </div>
             </div>

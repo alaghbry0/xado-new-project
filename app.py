@@ -38,6 +38,9 @@ def subscribe():
     print(f"Received telegram_id: {telegram_id}")
     print(f"Received subscription_type: {subscription_type}")
 
+    if not telegram_id or not subscription_type:
+        return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
+
     # التحقق من القيم المرسلة
     valid_subscription_types = ["Forex VIP Channel", "Crypto VIP Channel"]
     if subscription_type not in valid_subscription_types:

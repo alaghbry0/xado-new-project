@@ -196,12 +196,7 @@ function subscribe(subscriptionType) {
         return;
     }
 
-    console.log("Subscription Type:", subscriptionType);
-    console.log("Telegram ID:", telegramId);
-    console.log("Data sent:", {
-        telegram_id: telegramId,
-        subscription_type: subscriptionType
-    });
+    showLoading(); // إظهار شريط التحميل
 
     $.ajax({
         url: "/api/subscribe",
@@ -211,15 +206,21 @@ function subscribe(subscriptionType) {
             telegram_id: telegramId,
             subscription_type: subscriptionType
         }),
-        success: function(response) {
+        success: function (response) {
             alert(`🎉 ${response.message}`);
+            // تحديث بيانات الصفحة ديناميكيًا إذا لزم الأمر
         },
-        error: function(error) {
+        error: function (error) {
             console.error("Error details:", error);
-            alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
+            alert("حدث خطأ أثناء الاشتراك: " + (error.responseJSON?.error || "Unknown Error"));
+        },
+        complete: function () {
+            hideLoading(); // إخفاء شريط التحميل
         }
     });
 }
+
+
 
 
 // دالة التحقق من الاشتراك
@@ -245,32 +246,56 @@ function checkSubscription(telegramId) {
 
 function renewSubscription(subscriptionType) {
     if (!telegramId) {
-    alert("لا يمكن تنفيذ العملية: Telegram ID غير متوفر.");
-    return;
-}
+        alert("لا يمكن تنفيذ العملية: Telegram ID غير متوفر.");
+        return;
+    }
+
+    showLoading(); // إظهار شريط التحميل
 
     $.ajax({
         url: "/api/renew",
         type: "POST",
         contentType: "application/json",
         data: JSON.stringify({
-            telegram_id: telegramId, // استخدم Telegram ID الديناميكي
+            telegram_id: telegramId,
             subscription_type: subscriptionType
         }),
-        success: function(response) {
+        success: function (response) {
             alert(response.message); // عرض رسالة النجاح
+            // تحديث واجهة المستخدم إذا لزم الأمر
         },
-        error: function(error) {
-    console.error("Error details:", error);
-    alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
-}
-
+        error: function (error) {
+            console.error("Error details:", error);
+            alert("حدث خطأ أثناء التجديد: " + (error.responseJSON?.error || "Unknown Error"));
+        },
+        complete: function () {
+            hideLoading(); // إخفاء شريط التحميل
+        }
     });
 }
 
+//ظهور شريط التحميل عند الاشتراك والتجديد
 
-console.log("Telegram ID:", telegramId);
-console.log("Telegram WebApp Init Data:", window.Telegram?.WebApp?.initData);
+
+@app.route('/api/verify', methods=['POST'])
+def verify_user():
+    data = request.json
+    telegram_id = data.get('telegramId')
+    username = data.get('username')
+
+    print(f"Received Telegram ID: {telegram_id}, Username: {username}")
+
+    if telegram_id:
+        return jsonify({"success": True, "message": "Telegram ID received successfully!"})
+    else:
+        return jsonify({"success": False, "message": "Telegram ID not found!"}), 400
+
+const tg = window.Telegram.WebApp;
+console.log("Init Data:", tg.initData);
+
+if (!tg.initData) {
+    alert("يرجى فتح التطبيق من داخل Telegram.");
+}
 
 
 
