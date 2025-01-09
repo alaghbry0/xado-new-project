@@ -29,6 +29,7 @@ subscriptions = [
 @app.route("/api/subscribe", methods=["POST"])
 def subscribe():
     data = request.json
+    print("Received data:", data)  # طباعة البيانات المستلمة
     telegram_id = data.get("telegram_id")
     subscription_type = data.get("subscription_type")
     print(f"Received telegram_id: {telegram_id}")

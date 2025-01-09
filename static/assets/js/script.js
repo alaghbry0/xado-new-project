@@ -277,6 +277,7 @@ function renewSubscription(subscriptionType) {
     });
 }
 
+console.log("Telegram ID:", telegramId);
 
 
 
