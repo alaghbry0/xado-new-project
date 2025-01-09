@@ -172,6 +172,19 @@ def home():
 def shop():
     return render_template("shop.html", subscriptions=subscriptions)
 
+@app.route('/api/verify', methods=['POST'])
+def verify_user():
+    data = request.json
+    telegram_id = data.get('telegramId')
+    username = data.get('username')
+
+    print(f"Received Telegram ID: {telegram_id}, Username: {username}")
+
+    if telegram_id:
+        return jsonify({"success": True, "message": "Telegram ID received successfully!"})
+    else:
+        return jsonify({"success": False, "message": "Telegram ID not found!"}), 400
+
 @app.route("/profile", endpoint="profile")
 def profile():
     user = {
