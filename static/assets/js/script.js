@@ -9,6 +9,8 @@ if (!tg) {
     tg.ready();
     tg.expand();
     console.log("Telegram WebApp initialized successfully!");
+    console.log("Init Data:", tg.initData);
+
 }
 
 
@@ -398,17 +400,3 @@ function hideLoading() {
     }
 }
 
-
-const tg = window.Telegram.WebApp;
-console.log("Init Data:", tg.initData);
-console.log(typeof subscribe); // يجب أن يظهر "function"
-if (telegramId) {
-    console.log("Telegram ID is:", telegramId);
-} else {
-    console.error("Telegram ID is not defined.");
-}
-
-
-if (!tg.initData) {
-    alert("يرجى فتح التطبيق من داخل Telegram.");
-}
