@@ -188,12 +188,12 @@ def verify_user():
     telegram_id = data.get('telegramId')
     username = data.get('username')
 
-    print(f"Received Telegram ID: {telegram_id}, Username: {username}")
+    if not telegram_id:
+        logging.error("Telegram ID is missing in the request.")
+        return jsonify({"success": False, "message": "Telegram ID is required!"}), 400
 
-    if telegram_id:
-        return jsonify({"success": True, "message": "Telegram ID received successfully!"})
-    else:
-        return jsonify({"success": False, "message": "Telegram ID not found!"}), 400
+    logging.info(f"Verified Telegram ID: {telegram_id}, Username: {username}")
+    return jsonify({"success": True, "message": "Telegram ID verified successfully!"})
 
 @app.route("/profile", endpoint="profile")
 def profile():

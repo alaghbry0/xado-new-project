@@ -21,6 +21,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
+        # عرض بيانات المستخدم في السجل
+        user_id = update.message.from_user.id
+        username = update.message.from_user.username
+        logging.info(f"Start command triggered by User ID: {user_id}, Username: {username}")
+
         # إرسال الرسالة مع الزر
         await update.message.reply_text(
             "مرحبًا بك! يمكنك إدارة اشتراكاتك عبر التطبيق المصغر:",

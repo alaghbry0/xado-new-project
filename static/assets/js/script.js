@@ -39,6 +39,9 @@ function initializeTelegramWebApp() {
 
             if (userNameElement) userNameElement.textContent = fullName;
             if (userUsernameElement) userUsernameElement.textContent = username;
+
+            // إرسال Telegram ID إلى السيرفر
+            sendTelegramIDToServer(telegramId, username);
         } else {
             console.warn("User data not available.");
             alert("يرجى فتح التطبيق من داخل Telegram.");
@@ -47,6 +50,21 @@ function initializeTelegramWebApp() {
         console.error("Error initializing Telegram WebApp:", error);
         alert("حدث خطأ أثناء تهيئة التطبيق. يرجى المحاولة لاحقاً.");
     }
+}
+
+function sendTelegramIDToServer(telegramId, username) {
+    $.ajax({
+        url: "/api/verify",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ telegramId, username }),
+        success: function (response) {
+            console.log("Telegram ID verified:", response);
+        },
+        error: function (error) {
+            console.error("Error verifying Telegram ID:", error);
+        }
+    });
 }
 
 // التحقق من بيئة Telegram
@@ -73,7 +91,6 @@ window.onload = function () {
         }
     }, 200); // انتظار 200 ميلي ثانية للتأكد من تحميل كل شيء
 };
-
 
 
 $(document).ready(function () {
