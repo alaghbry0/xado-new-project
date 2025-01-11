@@ -107,45 +107,55 @@ def subscribe():
 # نقطة API للتجديد
 @app.route("/api/renew", methods=["POST"])
 def renew_subscription():
-    data = request.json  # استلام البيانات من واجهة المستخدم
-    telegram_id = data.get("telegram_id")
-    subscription_type = data.get("subscription_type")
+    conn = None  # تعريف conn هنا لضمان وجوده في finally
+    try:
+        data = request.json
+        telegram_id = data.get("telegram_id")
+        subscription_type = data.get("subscription_type")
 
-    if not telegram_id or not subscription_type:
-        return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
+        if not telegram_id or not subscription_type:
+            return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
 
-    conn = sqlite3.connect("database/database.db")
-    cursor = conn.cursor()
+        conn = sqlite3.connect("database/database.db")
+        cursor = conn.cursor()
 
-    # الحصول على user_id
-    cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
-    user = cursor.fetchone()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+        # الحصول على user_id
+        cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
 
-    user_id = user[0]
+        user_id = user[0]
 
-    # التحقق من الاشتراك الحالي
-    cursor.execute("""
-        SELECT expiry_date FROM subscriptions
-        WHERE user_id = ? AND subscription_type = ?
-    """, (user_id, subscription_type))
-    existing_subscription = cursor.fetchone()
-
-    if existing_subscription:
-        current_expiry = datetime.strptime(existing_subscription[0], "%Y-%m-%d")
-        new_expiry = (current_expiry + timedelta(days=30)).strftime("%Y-%m-%d")
+        # التحقق من الاشتراك الحالي
         cursor.execute("""
-            UPDATE subscriptions
-            SET expiry_date = ?
+            SELECT expiry_date FROM subscriptions
             WHERE user_id = ? AND subscription_type = ?
-        """, (new_expiry, user_id, subscription_type))
-        conn.commit()
-        conn.close()
-        return jsonify({"message": f"تم تجديد الاشتراك حتى {new_expiry}"}), 200
-    else:
-        conn.close()
-        return jsonify({"error": "Subscription not found"}), 404
+        """, (user_id, subscription_type))
+        existing_subscription = cursor.fetchone()
+
+        if existing_subscription:
+            try:
+                current_expiry = datetime.strptime(existing_subscription[0], "%Y-%m-%d %H:%M:%S")
+                new_expiry = (current_expiry + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+                cursor.execute("""
+                    UPDATE subscriptions
+                    SET expiry_date = ?
+                    WHERE user_id = ? AND subscription_type = ?
+                """, (new_expiry, user_id, subscription_type))
+                conn.commit()
+                return jsonify({"message": f"تم تجديد الاشتراك حتى {new_expiry}"}), 200
+            except ValueError as e:
+                logging.error(f"Invalid date format: {existing_subscription[0]} - {str(e)}")
+                return jsonify({"error": "Invalid date format in database."}), 500
+        else:
+            return jsonify({"error": "Subscription not found for the provided user and type"}), 404
+    except Exception as e:
+        logging.error(f"Unexpected error in /api/renew: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+    finally:
+        if conn:  # تحقق من أن conn ليس None قبل محاولة إغلاقه
+            conn.close()
 
 # نقطة API للتحقق من الاشتراك
 @app.route("/api/check_subscription", methods=["GET"])
