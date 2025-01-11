@@ -6,6 +6,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
 import logging
 
+# إعداد تسجيل الأخطاء
+logging.basicConfig(level=logging.INFO)
+
 # توكن البوت
 TOKEN = "7375681204:AAE8CpTeEpEw4gscDX0Caxj2m_rHvHv5IGc"
 
@@ -29,13 +32,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # إرسال الرسالة مع الزر
         await update.message.reply_text(
-            "مرحبًا بك! يمكنك إدارة اشتراكاتك عبر التطبيق المصغر:",
+            "مرحبًا! اضغط على الزر أدناه لفتح التطبيق المصغر:",
             reply_markup=reply_markup
         )
     except Exception as e:
         logging.error(f"Error in /start command: {e}")
         await update.message.reply_text("حدث خطأ أثناء إعداد التطبيق المصغر. يرجى المحاولة لاحقًا.")
 
+# إعداد التطبيق
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.run_polling()
 # وظيفة الاشتراك
 async def subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [

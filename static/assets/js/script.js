@@ -3,25 +3,32 @@
 let tg = null;
 let telegramId = null;
 
+// التحقق من بيئة Telegram WebApp
+function checkTelegramEnvironment() {
+    if (typeof Telegram === 'undefined' || typeof Telegram.WebApp === 'undefined') {
+        console.error("Telegram WebApp غير متوفر. يرجى فتح التطبيق من داخل تيليجرام.");
+        alert("يرجى فتح التطبيق من داخل تيليجرام.");
+        return false;
+    }
+    return true;
+}
+
 // التهيئة الأساسية لتطبيق Telegram WebApp
 function initializeTelegramWebApp() {
-    tg = window.Telegram?.WebApp;
+    if (!checkTelegramEnvironment()) return;
 
-    if (!tg) {
-        handleError("Telegram WebApp API غير متوفر. يرجى فتح التطبيق من داخل Telegram.");
-        return;
-    }
+    tg = Telegram.WebApp;
 
-    // تأكيد التهيئة
     tg.ready(() => {
         console.log("Telegram WebApp جاهز.");
 
-        // تحقق من وجود بيانات المستخدم
-        const userData = tg.initDataUnsafe?.user;
-        if (userData?.id) {
-            telegramId = userData.id;
-            const username = userData.username || "Unknown User";
-            const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
+        const initData = tg.initDataUnsafe;
+        console.log("Init Data Unsafe:", initData);
+
+        if (initData?.user?.id) {
+            telegramId = initData.user.id;
+            const username = initData.user.username || "Unknown User";
+            const fullName = `${initData.user.first_name || ''} ${initData.user.last_name || ''}`.trim();
 
             console.log("Telegram ID:", telegramId);
             console.log("Username:", username);
@@ -33,7 +40,8 @@ function initializeTelegramWebApp() {
             // إرسال Telegram ID إلى الخادم
             sendTelegramIDToServer(telegramId, username);
         } else {
-            handleError("بيانات المستخدم غير متوفرة بعد التهيئة.");
+            console.error("بيانات المستخدم غير متوفرة بعد التهيئة.");
+            alert("يرجى فتح التطبيق من داخل تيليجرام.");
         }
     });
 }
@@ -49,6 +57,7 @@ function updateUserUI(fullName, username) {
 
 // إرسال Telegram ID إلى الخادم
 function sendTelegramIDToServer(telegramId, username) {
+    console.log("إرسال Telegram ID إلى الخادم...");
     $.ajax({
         url: "/api/verify",
         type: "POST",
@@ -63,29 +72,16 @@ function sendTelegramIDToServer(telegramId, username) {
     });
 }
 
-// التعامل مع الأخطاء
-function handleError(message) {
-    console.error(message);
-    alert(message);
-}
-
-// التحقق من بيئة Telegram
-function checkTelegramEnvironment() {
-    console.log("التحقق من بيئة Telegram WebApp...");
-    if (!window.Telegram || !window.Telegram.WebApp) {
-        handleError("Telegram WebApp غير متوفر. يرجى فتح التطبيق من داخل Telegram.");
-        return false;
-    }
-    console.log("Telegram.WebApp متوفر. التطبيق يعمل داخل Telegram WebApp.");
-    return true;
-}
+// معالجة الأخطاء العامة
+window.addEventListener('error', function (event) {
+    console.error("Error in script:", event.message);
+    alert("حدث خطأ أثناء تشغيل التطبيق.");
+});
 
 // بدء التهيئة عند تحميل الصفحة
-window.onload = function () {
-    if (checkTelegramEnvironment()) {
-        initializeTelegramWebApp();
-    }
-};
+document.addEventListener('DOMContentLoaded', () => {
+    initializeTelegramWebApp();
+});
 
 $(document).ready(function () {
 
