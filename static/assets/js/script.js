@@ -318,7 +318,7 @@ window.subscribe = function (subscriptionType) {
 
     console.log("البيانات المرسلة للاشتراك:", subscriptionData);
 
-    // إرسال البيانات إلى API
+    // إرسال بيانات الاشتراك إلى API
     window.performAjaxRequest({
         url: "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/api/subscribe",
         method: "POST",
@@ -333,7 +333,6 @@ window.subscribe = function (subscriptionType) {
         },
     });
 };
-
 
 // دالة التحقق من الاشتراك
 window.checkSubscription = function (telegramId) {

@@ -34,30 +34,37 @@ subscriptions = [
 # نقطة API للاشتراك
 @app.route("/api/subscribe", methods=["POST"])
 def subscribe():
+    conn = None  # تعريف conn لضمان وجوده في finally
     try:
         data = request.json
         logging.info(f"Received data: {data}")
 
         telegram_id = data.get("telegram_id")
         subscription_type = data.get("subscription_type")
+
         logging.debug(f"Received telegram_id: {telegram_id}")
         logging.debug(f"Received subscription_type: {subscription_type}")
 
+        # التحقق من البيانات المفقودة
         if not telegram_id or not subscription_type:
             return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
 
+        # التحقق من صحة نوع الاشتراك
         valid_subscription_types = ["Forex VIP Channel", "Crypto VIP Channel"]
         if subscription_type not in valid_subscription_types:
             return jsonify({"error": "Invalid subscription type"}), 400
 
+        # فتح الاتصال بقاعدة البيانات
         conn = sqlite3.connect("database/database.db", timeout=10)
         cursor = conn.cursor()
 
+        # إضافة المستخدم إذا لم يكن موجودًا
         cursor.execute("""
             INSERT OR IGNORE INTO users (telegram_id)
             VALUES (?)
         """, (telegram_id,))
 
+        # الحصول على user_id
         cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
         user = cursor.fetchone()
         if not user:
@@ -65,6 +72,7 @@ def subscribe():
 
         user_id = user[0]
 
+        # التحقق من وجود اشتراك حالي
         cursor.execute("""
             SELECT expiry_date FROM subscriptions
             WHERE user_id = ? AND subscription_type = ?
@@ -73,7 +81,8 @@ def subscribe():
 
         if existing_subscription:
             try:
-                current_expiry = datetime.fromisoformat(existing_subscription[0])
+                # تجديد الاشتراك الحالي
+                current_expiry = datetime.strptime(existing_subscription[0], "%Y-%m-%d %H:%M:%S")
                 new_expiry = (current_expiry + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
                 cursor.execute("""
                     UPDATE subscriptions
@@ -81,9 +90,11 @@ def subscribe():
                     WHERE user_id = ? AND subscription_type = ?
                 """, (new_expiry, user_id, subscription_type))
                 message = f"تم تجديد اشتراك {subscription_type} حتى {new_expiry}"
-            except ValueError:
+            except ValueError as e:
+                logging.error(f"Error parsing expiry_date: {existing_subscription[0]} - {str(e)}")
                 return jsonify({"error": "Invalid date format in database."}), 500
         else:
+            # إنشاء اشتراك جديد
             new_expiry = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute("""
                 INSERT INTO subscriptions (user_id, subscription_type, expiry_date)
@@ -92,8 +103,6 @@ def subscribe():
             message = f"تم الاشتراك في {subscription_type} بنجاح! ينتهي الاشتراك في {new_expiry}"
 
         conn.commit()
-        conn.close()
-
         return jsonify({"message": message, "expiry_date": new_expiry}), 200
 
     except sqlite3.OperationalError as e:
@@ -103,6 +112,10 @@ def subscribe():
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+    finally:
+        if conn:
+            conn.close()
 
 # نقطة API للتجديد
 @app.route("/api/renew", methods=["POST"])
