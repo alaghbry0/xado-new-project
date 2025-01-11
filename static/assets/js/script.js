@@ -1,6 +1,5 @@
 'use strict';
 
-// تعريف المتغيرات العامة
 let tg = null;
 let telegramId = null;
 
@@ -14,44 +13,46 @@ function initializeTelegramWebApp() {
             return;
         }
 
-        // تهيئة Telegram WebApp
-        tg.ready();
-        tg.expand();
-        console.log("Telegram WebApp initialized successfully!");
-        console.log("Telegram WebApp initialized:", tg);
-        console.log("Init Data:", tg.initData);
-        console.log("Init Data Unsafe:", tg.initDataUnsafe);
+        // تأكيد التهيئة
+        tg.ready(() => {
+            console.log("Telegram WebApp is ready!");
 
-        // استخراج بيانات المستخدم
-        const userData = tg.initDataUnsafe?.user;
-        if (userData && userData.id) {
-            telegramId = userData.id;
-            const username = userData.username || "Unknown User";
-            const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
+            // التحقق من وجود البيانات
+            if (tg.initDataUnsafe?.user?.id) {
+                telegramId = tg.initDataUnsafe.user.id;
+                const username = tg.initDataUnsafe.user.username || "Unknown User";
+                const fullName = `${tg.initDataUnsafe.user.first_name || ''} ${tg.initDataUnsafe.user.last_name || ''}`.trim();
 
-            console.log("Telegram ID:", telegramId);
-            console.log("Username:", username);
-            console.log("Full Name:", fullName);
+                console.log("Telegram ID:", telegramId);
+                console.log("Username:", username);
+                console.log("Full Name:", fullName);
 
-            // تحديث واجهة المستخدم
-            const userNameElement = document.getElementById("user-name");
-            const userUsernameElement = document.getElementById("user-username");
+                // تحديث واجهة المستخدم
+                updateUserUI(fullName, username);
 
-            if (userNameElement) userNameElement.textContent = fullName;
-            if (userUsernameElement) userUsernameElement.textContent = username;
-
-            // إرسال Telegram ID إلى السيرفر
-            sendTelegramIDToServer(telegramId, username);
-        } else {
-            console.warn("User data not available.");
-            alert("يرجى فتح التطبيق من داخل Telegram.");
-        }
+                // إرسال Telegram ID إلى الخادم
+                sendTelegramIDToServer(telegramId, username);
+            } else {
+                console.error("User data is not available after initialization.");
+                alert("لا يمكن استرداد بيانات المستخدم. يرجى المحاولة لاحقاً.");
+            }
+        });
     } catch (error) {
         console.error("Error initializing Telegram WebApp:", error);
         alert("حدث خطأ أثناء تهيئة التطبيق. يرجى المحاولة لاحقاً.");
     }
 }
 
+// تحديث واجهة المستخدم
+function updateUserUI(fullName, username) {
+    const userNameElement = document.getElementById("user-name");
+    const userUsernameElement = document.getElementById("user-username");
+
+    if (userNameElement) userNameElement.textContent = fullName;
+    if (userUsernameElement) userUsernameElement.textContent = username;
+}
+
+// إرسال Telegram ID إلى الخادم
 function sendTelegramIDToServer(telegramId, username) {
     $.ajax({
         url: "/api/verify",
@@ -66,6 +67,32 @@ function sendTelegramIDToServer(telegramId, username) {
         }
     });
 }
+
+// التحقق من بيئة Telegram
+function checkTelegramEnvironment() {
+    console.log("Checking Telegram WebApp environment...");
+    console.log("window.Telegram:", window.Telegram);
+    console.log("window.Telegram.WebApp:", window.Telegram?.WebApp);
+
+    if (!window.Telegram || !window.Telegram.WebApp) {
+        console.error("Telegram WebApp غير متوفر. هذا يعني أنك خارج بيئة Telegram WebApp.");
+        alert("يرجى فتح التطبيق من داخل Telegram.");
+        return false;
+    }
+
+    console.log("Telegram.WebApp متاح. أنت تعمل داخل Telegram WebApp.");
+    return true;
+}
+
+// بدء التهيئة عند تحميل الصفحة
+window.onload = function () {
+    setTimeout(() => {
+        if (checkTelegramEnvironment()) {
+            initializeTelegramWebApp();
+        }
+    }, 200); // انتظار 200 ميلي ثانية للتأكد من تحميل كل شيء
+};
+
 
 // التحقق من بيئة Telegram
 function checkTelegramEnvironment() {
