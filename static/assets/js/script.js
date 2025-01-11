@@ -23,7 +23,6 @@ window.performAjaxRequest = function ({ url, method = "GET", data = null, onSucc
 // التهيئة الأساسية لتطبيق Telegram WebApp
 window.initializeTelegramWebApp = function () {
     try {
-        // تأكد من عدم إعادة تعريف tg
         if (window.tg) {
             console.log("Telegram WebApp API تم تهيئته مسبقًا.");
             return;
@@ -40,7 +39,6 @@ window.initializeTelegramWebApp = function () {
         window.tg.ready(() => {
             console.log("Telegram WebApp جاهز.");
             const userData = window.tg.initDataUnsafe?.user;
-            console.log("User Data:", userData);
 
             if (userData?.id) {
                 window.telegramId = userData.id;
@@ -54,13 +52,14 @@ window.initializeTelegramWebApp = function () {
                 window.updateUserUI(fullName, username);
                 window.sendTelegramIDToServer(window.telegramId, username);
             } else {
-                window.handleError("بيانات المستخدم غير متوفرة بعد التهيئة.");
+                console.warn("بيانات المستخدم غير متوفرة.");
             }
         });
     } catch (error) {
         window.handleError("حدث خطأ أثناء تهيئة التطبيق: " + error.message);
     }
 };
+
 
 // تحديث واجهة المستخدم
 window.updateUserUI = function (fullName, username) {
@@ -297,17 +296,20 @@ $(window).on('resize', function () {
 window.subscribe = function (subscriptionType) {
     console.log("بدء عملية الاشتراك...");
 
-    if (!tg) {
+    if (!window.tg) {
         console.error("Telegram WebApp API غير مهيأ.");
         alert("يرجى تشغيل التطبيق من داخل Telegram.");
         return;
     }
 
-    if (!telegramId) {
-        console.error("Telegram ID غير متوفر.");
-        alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
+    const userData = window.tg.initDataUnsafe?.user;
+    if (!userData || !userData.id) {
+        console.error("Telegram ID غير متوفر بعد التهيئة.");
+        alert("لا يمكن تنفيذ العملية: Telegram ID غير متوفر.");
         return;
     }
+
+    const telegramId = userData.id;
 
     const subscriptionData = {
         telegram_id: telegramId,
@@ -358,17 +360,20 @@ window.checkSubscription = function (telegramId) {
 window.renewSubscription = function (subscriptionType) {
     console.log("بدء عملية التجديد...");
 
-    if (!tg) {
+    if (!window.tg) {
         console.error("Telegram WebApp API غير مهيأ.");
         alert("يرجى تشغيل التطبيق من داخل Telegram.");
         return;
     }
 
-    if (!telegramId) {
-        console.error("Telegram ID غير متوفر.");
+    const userData = window.tg.initDataUnsafe?.user;
+    if (!userData || !userData.id) {
+        console.error("Telegram ID غير متوفر بعد التهيئة.");
         alert("لا يمكن تنفيذ العملية: Telegram ID غير متوفر.");
         return;
     }
+
+    const telegramId = userData.id;
 
     const renewalData = {
         telegram_id: telegramId,
