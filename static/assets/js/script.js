@@ -1,7 +1,8 @@
 'use strict';
 
-let tg = null; // تعريف المتغير tg كمتحول عام
-let telegramId = null; // تعريف telegramId كمتحول عام
+// تعريف المتغيرات العامة
+let tg = null;
+let telegramId = null;
 
 function initializeTelegramWebApp() {
     try {
@@ -13,6 +14,7 @@ function initializeTelegramWebApp() {
             return;
         }
 
+        // تهيئة Telegram WebApp
         tg.ready();
         tg.expand();
         console.log("Telegram WebApp initialized successfully!");
@@ -31,7 +33,7 @@ function initializeTelegramWebApp() {
             console.log("Username:", username);
             console.log("Full Name:", fullName);
 
-            // عرض بيانات المستخدم على الصفحة
+            // تحديث واجهة المستخدم
             const userNameElement = document.getElementById("user-name");
             const userUsernameElement = document.getElementById("user-username");
 
@@ -47,11 +49,29 @@ function initializeTelegramWebApp() {
     }
 }
 
-// إضافة مهلة قصيرة للتأكد من تحميل tg بشكل كامل
+// التحقق من بيئة Telegram
+function checkTelegramEnvironment() {
+    console.log("Checking Telegram WebApp environment...");
+    console.log("window.Telegram:", window.Telegram);
+    console.log("window.Telegram.WebApp:", window.Telegram?.WebApp);
+
+    if (!window.Telegram || !window.Telegram.WebApp) {
+        console.error("Telegram WebApp غير متوفر. هذا يعني أنك خارج بيئة Telegram WebApp.");
+        alert("يرجى فتح التطبيق من داخل Telegram.");
+        return false;
+    }
+
+    console.log("Telegram.WebApp متاح. أنت تعمل داخل Telegram WebApp.");
+    return true;
+}
+
+// بدء التهيئة عند تحميل الصفحة
 window.onload = function () {
     setTimeout(() => {
-        initializeTelegramWebApp();
-    }, 200); // انتظار 200 ميلي ثانية قبل التهيئة
+        if (checkTelegramEnvironment()) {
+            initializeTelegramWebApp();
+        }
+    }, 200); // انتظار 200 ميلي ثانية للتأكد من تحميل كل شيء
 };
 
 
