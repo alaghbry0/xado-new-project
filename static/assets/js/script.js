@@ -19,6 +19,12 @@ function performAjaxRequest({ url, method = "GET", data = null, onSuccess, onErr
 // التهيئة الأساسية لتطبيق Telegram WebApp
 function initializeTelegramWebApp() {
     try {
+        // تأكد من عدم إعادة تعريف tg
+        if (tg) {
+            console.log("Telegram WebApp API تم تهيئته مسبقًا.");
+            return;
+        }
+
         tg = window.Telegram?.WebApp;
 
         if (!tg) {
