@@ -1,39 +1,27 @@
 'use strict';
 
+let tg = null; // تعريف المتغير tg كمتحول عام
+let telegramId = null; // تعريف telegramId كمتحول عام
+
 function initializeTelegramWebApp() {
-    const tg = window.Telegram?.WebApp;
+    tg = window.Telegram?.WebApp;
 
     if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+        console.error("Telegram WebApp API not available or invalid initialization data.");
         alert("يرجى تشغيل التطبيق من داخل Telegram.");
-        return; // الآن return داخل دالة، ولن يكون هناك خطأ
-    } else {
+        return;
+    }
+
+    try {
         tg.ready();
         tg.expand();
         console.log("Telegram WebApp initialized successfully!");
         console.log("Telegram WebApp initialized:", tg);
         console.log("Init Data:", tg.initData);
         console.log("Init Data Unsafe:", tg.initDataUnsafe);
-    }
-}
 
-// استدعاء الدالة عند الحاجة
-initializeTelegramWebApp();
-
-
-
-
-// Telegram WebApp Initialization
-let telegramId = null; // تعريف telegramId كمتحول عام
-
-window.onload = function () {
-    if (!tg) {
-        console.warn("Telegram WebApp API not available.");
-        alert("يرجى تشغيل التطبيق من داخل Telegram.");
-        return;
-    }
-
-    try {
-        const userData = tg.initDataUnsafe?.user;
+        // استخراج بيانات المستخدم
+        const userData = tg.initDataUnsafe.user;
         if (userData && userData.id) {
             telegramId = userData.id;
             const username = userData.username || "Unknown User";
@@ -43,9 +31,7 @@ window.onload = function () {
             console.log("Username:", username);
             console.log("Full Name:", fullName);
 
-            console.log("Global Telegram ID:", telegramId); // متاح الآن
-
-            // عرض بيانات المستخدم
+            // عرض بيانات المستخدم على الصفحة
             const userNameElement = document.getElementById("user-name");
             const userUsernameElement = document.getElementById("user-username");
 
@@ -58,10 +44,12 @@ window.onload = function () {
     } catch (error) {
         console.error("Error initializing Telegram WebApp:", error);
     }
+}
+
+// استدعاء التهيئة عند تحميل الصفحة
+window.onload = function () {
+    initializeTelegramWebApp();
 };
-
-
-
 
 
 $(document).ready(function () {
@@ -232,25 +220,26 @@ $(window).on('resize', function () {
 // دالة الاشتراك
 window.subscribe = function (subscriptionType) {
     if (!tg) {
+        console.error("Telegram WebApp API not initialized.");
         alert("يرجى تشغيل التطبيق من داخل Telegram.");
         return;
     }
 
-    const telegramId = tg.initDataUnsafe?.user?.id;
     if (!telegramId) {
+        console.error("Telegram ID not available.");
         alert("لا يمكن الاشتراك: Telegram ID غير متوفر.");
         return;
     }
 
-    const base = {
+    const subscriptionData = {
         telegram_id: telegramId,
         subscription_type: subscriptionType
     };
 
-    console.log("Data being sent for subscription:", base);
+    console.log("Data being sent for subscription:", subscriptionData);
 
-    // إنشاء العملية
-    const result = subscribeToApi(base);
+    // إرسال البيانات إلى API
+    const result = subscribeToApi(subscriptionData);
 
     if (result instanceof Promise) {
         result
