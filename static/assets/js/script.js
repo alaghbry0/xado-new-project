@@ -199,8 +199,6 @@ window.updateUserUI = function () {
 };
 
 
-
-
     /* back page navigation */
     $('.back-btn').on('click', function () {
         window.history.back();
