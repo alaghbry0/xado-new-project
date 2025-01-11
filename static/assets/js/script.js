@@ -1,18 +1,24 @@
 'use strict';
 
-const tg = window.Telegram?.WebApp;
+function initializeTelegramWebApp() {
+    const tg = window.Telegram?.WebApp;
 
-if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-    alert("يرجى تشغيل التطبيق من داخل Telegram.");
-    return;
-} else {
-    tg.ready();
-    tg.expand();
-    console.log("Telegram WebApp initialized successfully!");
-    console.log("Telegram WebApp initialized:", tg);
-    console.log("Init Data:", tg.initData);
-    console.log("Init Data Unsafe:", tg.initDataUnsafe);
+    if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+        alert("يرجى تشغيل التطبيق من داخل Telegram.");
+        return; // الآن return داخل دالة، ولن يكون هناك خطأ
+    } else {
+        tg.ready();
+        tg.expand();
+        console.log("Telegram WebApp initialized successfully!");
+        console.log("Telegram WebApp initialized:", tg);
+        console.log("Init Data:", tg.initData);
+        console.log("Init Data Unsafe:", tg.initDataUnsafe);
+    }
 }
+
+// استدعاء الدالة عند الحاجة
+initializeTelegramWebApp();
+
 
 
 
