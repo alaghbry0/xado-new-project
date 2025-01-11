@@ -55,8 +55,11 @@
     <figure class="avatar avatar-120 rounded-circle mx-auto mb-3">
         <img src="{{ url_for('static', filename=user.profile_image) }}" alt="Profile Picture">
     </figure>
-    <h5 class="user-name">{{ user.name }}</h5>
+    <!-- إضافة معلومات المستخدم -->
+    <h5 id="user-name" class="text-primary">غير معروف</h5>
+    <p id="user-username" class="text-muted">@غير معروف</p>
 </div>
+
 
 <!-- قائمة الاشتراكات -->
 <div class="subscriptions-section">
