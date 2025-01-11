@@ -6,14 +6,18 @@ window.telegramId = null;
 
 // دالة عامة لتنفيذ طلبات AJAX
 window.performAjaxRequest = function ({ url, method = "GET", data = null, onSuccess, onError }) {
-    $.ajax({
-        url,
-        type: method,
-        contentType: "application/json",
-        data: data ? JSON.stringify(data) : null,
-        success: onSuccess,
-        error: onError,
-    });
+    try {
+        $.ajax({
+            url,
+            type: method,
+            contentType: "application/json",
+            data: data ? JSON.stringify(data) : null,
+            success: onSuccess,
+            error: onError,
+        });
+    } catch (error) {
+        console.error("Error in performAjaxRequest:", error);
+    }
 };
 
 // التهيئة الأساسية لتطبيق Telegram WebApp
@@ -36,6 +40,7 @@ window.initializeTelegramWebApp = function () {
         window.tg.ready(() => {
             console.log("Telegram WebApp جاهز.");
             const userData = window.tg.initDataUnsafe?.user;
+            console.log("User Data:", userData);
 
             if (userData?.id) {
                 window.telegramId = userData.id;
@@ -59,11 +64,15 @@ window.initializeTelegramWebApp = function () {
 
 // تحديث واجهة المستخدم
 window.updateUserUI = function (fullName, username) {
-    const userNameElement = document.getElementById("user-name");
-    const userUsernameElement = document.getElementById("user-username");
+    try {
+        const userNameElement = document.getElementById("user-name");
+        const userUsernameElement = document.getElementById("user-username");
 
-    if (userNameElement) userNameElement.textContent = fullName;
-    if (userUsernameElement) userUsernameElement.textContent = username;
+        if (userNameElement) userNameElement.textContent = fullName;
+        if (userUsernameElement) userUsernameElement.textContent = username;
+    } catch (error) {
+        console.error("Error in updateUserUI:", error);
+    }
 };
 
 // إرسال Telegram ID إلى الخادم
@@ -109,7 +118,6 @@ document.addEventListener("DOMContentLoaded", function () {
         console.warn("Application running outside Telegram WebApp.");
     }
 });
-
 
 $(document).ready(function () {
 
