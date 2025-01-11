@@ -4,15 +4,15 @@ let tg = null; // تعريف المتغير tg كمتحول عام
 let telegramId = null; // تعريف telegramId كمتحول عام
 
 function initializeTelegramWebApp() {
-    tg = window.Telegram?.WebApp;
-
-    if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-        console.error("Telegram WebApp API not available or invalid initialization data.");
-        alert("يرجى تشغيل التطبيق من داخل Telegram.");
-        return;
-    }
-
     try {
+        tg = window.Telegram?.WebApp;
+
+        if (!tg) {
+            console.error("Telegram WebApp API not available.");
+            alert("يرجى تشغيل التطبيق من داخل Telegram.");
+            return;
+        }
+
         tg.ready();
         tg.expand();
         console.log("Telegram WebApp initialized successfully!");
@@ -21,7 +21,7 @@ function initializeTelegramWebApp() {
         console.log("Init Data Unsafe:", tg.initDataUnsafe);
 
         // استخراج بيانات المستخدم
-        const userData = tg.initDataUnsafe.user;
+        const userData = tg.initDataUnsafe?.user;
         if (userData && userData.id) {
             telegramId = userData.id;
             const username = userData.username || "Unknown User";
@@ -43,13 +43,17 @@ function initializeTelegramWebApp() {
         }
     } catch (error) {
         console.error("Error initializing Telegram WebApp:", error);
+        alert("حدث خطأ أثناء تهيئة التطبيق. يرجى المحاولة لاحقاً.");
     }
 }
 
-// استدعاء التهيئة عند تحميل الصفحة
+// إضافة مهلة قصيرة للتأكد من تحميل tg بشكل كامل
 window.onload = function () {
-    initializeTelegramWebApp();
+    setTimeout(() => {
+        initializeTelegramWebApp();
+    }, 200); // انتظار 200 ميلي ثانية قبل التهيئة
 };
+
 
 
 $(document).ready(function () {
