@@ -1,8 +1,5 @@
 'use strict';
 
-let tg = null;
-let telegramId = null;
-
 window.onload = function () {
     if (!tg) {
         console.warn("Telegram WebApp API not available.");
@@ -34,57 +31,6 @@ window.onload = function () {
     } catch (error) {
         console.error("Error initializing Telegram WebApp:", error);
     }
-};
-
-
-// تحديث واجهة المستخدم
-function updateUserUI(fullName, username) {
-    const userNameElement = document.getElementById("user-name");
-    const userUsernameElement = document.getElementById("user-username");
-
-    if (userNameElement) userNameElement.textContent = fullName;
-    if (userUsernameElement) userUsernameElement.textContent = username;
-}
-
-// إرسال Telegram ID إلى الخادم
-function sendTelegramIDToServer(telegramId, username) {
-    $.ajax({
-        url: "/api/verify",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({ telegramId, username }),
-        success: function (response) {
-            console.log("Telegram ID verified:", response);
-        },
-        error: function (error) {
-            console.error("Error verifying Telegram ID:", error);
-        }
-    });
-}
-
-// التحقق من بيئة Telegram
-function checkTelegramEnvironment() {
-    console.log("Checking Telegram WebApp environment...");
-    console.log("window.Telegram:", window.Telegram);
-    console.log("window.Telegram.WebApp:", window.Telegram?.WebApp);
-
-    if (!window.Telegram || !window.Telegram.WebApp) {
-        console.error("Telegram WebApp غير متوفر. هذا يعني أنك خارج بيئة Telegram WebApp.");
-        alert("يرجى فتح التطبيق من داخل Telegram.");
-        return false;
-    }
-
-    console.log("Telegram.WebApp متاح. أنت تعمل داخل Telegram WebApp.");
-    return true;
-}
-
-// بدء التهيئة عند تحميل الصفحة
-window.onload = function () {
-    setTimeout(() => {
-        if (checkTelegramEnvironment()) {
-            initializeTelegramWebApp();
-        }
-    }, 200); // انتظار 200 ميلي ثانية للتأكد من تحميل كل شيء
 };
 
 
