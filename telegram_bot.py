@@ -15,15 +15,16 @@ WEB_APP_URL = "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/"
 # وظيفة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        user_id = update.message.from_user.id
+        username = update.message.from_user.username
+
         # إعداد زر التطبيق المصغر
         keyboard = [
             [InlineKeyboardButton("فتح التطبيق المصغر", web_app=WebAppInfo(url=WEB_APP_URL))]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # عرض بيانات المستخدم في السجل
-        user_id = update.message.from_user.id
-        username = update.message.from_user.username
+        # سجل بيانات المستخدم
         logging.info(f"Start command triggered by User ID: {user_id}, Username: {username}")
 
         # إرسال الرسالة مع الزر

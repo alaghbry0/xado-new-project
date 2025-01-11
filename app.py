@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, jsonify, render_template
 import logging
+from datetime import datetime, timezone
 import sqlite3
 from datetime import datetime, timedelta
 from flask_cors import CORS
@@ -184,17 +185,46 @@ def shop():
 
 @app.route('/api/verify', methods=['POST'])
 def verify_user():
-    data = request.json
-    telegram_id = data.get('telegramId')
-    username = data.get('username')
+    try:
+        # استخراج البيانات من الطلب
+        data = request.json
+        telegram_id = data.get('telegramId')
+        username = data.get('username')
 
-    if not telegram_id:
-        logging.error("Telegram ID is missing in the request.")
-        return jsonify({"success": False, "message": "Telegram ID is required!"}), 400
+        # تحقق من الحقول المفقودة أو القيم غير الصالحة
+        if not telegram_id or not isinstance(telegram_id, int):
+            logging.error("Telegram ID is missing or invalid in the request.")
+            return jsonify({
+                "success": False,
+                "message": "Telegram ID is required and must be an integer!"
+            }), 400
 
-    logging.info(f"Verified Telegram ID: {telegram_id}, Username: {username}")
-    return jsonify({"success": True, "message": "Telegram ID verified successfully!"})
+        if not username or not isinstance(username, str):
+            logging.warning("Username is missing or invalid in the request.")
+            username = "Unknown User"  # اسم افتراضي إذا كان مفقودًا
 
+        # تسجيل بيانات الطلب
+        client_ip = request.remote_addr
+        logging.info(f"Verified Telegram ID: {telegram_id}, Username: {username}, IP: {client_ip}")
+
+        # إرسال الاستجابة الناجحة
+        return jsonify({
+            "success": True,
+            "message": "Telegram ID verified successfully!",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "data": {
+                "telegramId": telegram_id,
+                "username": username
+            }
+        }), 200
+
+    except Exception as e:
+        # تسجيل أي أخطاء غير متوقعة
+        logging.error(f"Unexpected error in /api/verify: {e}")
+        return jsonify({
+            "success": False,
+            "message": "An unexpected error occurred!"
+        }), 500
 @app.route("/profile", endpoint="profile")
 def profile():
     user = {
