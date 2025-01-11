@@ -219,8 +219,6 @@ $(window).on('resize', function () {
     }
 });
 
-
-
 // دالة الاشتراك
 window.subscribe = function (subscriptionType) {
     if (!tg) {
@@ -243,33 +241,25 @@ window.subscribe = function (subscriptionType) {
     console.log("Data being sent for subscription:", subscriptionData);
 
     // إرسال البيانات إلى API
-    const result = subscribeToApi(subscriptionData);
-
-    if (result instanceof Promise) {
-        result
-            .then((response) => {
-                console.log("Subscription response:", response);
-                alert(`🎉 ${response.message}`);
-            })
-            .catch((error) => {
-                console.error("Error during subscription:", error);
-                alert("حدث خطأ أثناء الاشتراك: " + (error.message || "Unknown Error"));
-            });
-    } else {
-        console.warn("Subscription did not return a Promise.");
-    }
+    subscribeToApi(subscriptionData)
+        .then((response) => {
+            console.log("Subscription response:", response);
+            alert(`🎉 ${response.message}`);
+        })
+        .catch((error) => {
+            console.error("Error during subscription:", error);
+            alert("حدث خطأ أثناء الاشتراك: " + (error.message || "Unknown Error"));
+        });
 };
 
-
-
-//داله subscribeToApi
-function subscribeToApi(base) {
+// دالة إرسال البيانات إلى API
+function subscribeToApi(data) {
     return new Promise((resolve, reject) => {
         $.ajax({
             url: "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/api/subscribe",
             type: "POST",
             contentType: "application/json",
-            data: JSON.stringify(base),
+            data: JSON.stringify(data),
             success: function (response) {
                 resolve(response);
             },
@@ -281,9 +271,6 @@ function subscribeToApi(base) {
     });
 }
 
-
-
-
 // إضافة الأحداث لأزرار الاشتراك
 document.querySelectorAll('.subscribe-btn').forEach(button => {
     button.addEventListener('click', function () {
@@ -291,8 +278,6 @@ document.querySelectorAll('.subscribe-btn').forEach(button => {
         subscribe(subscriptionType);
     });
 });
-
-
 
 // دالة التحقق من الاشتراك
 function checkSubscription(telegramId) {
@@ -305,15 +290,14 @@ function checkSubscription(telegramId) {
         url: `/api/check_subscription?telegram_id=${telegramId}`,
         type: "GET",
         success: function (response) {
-            console.log(response.subscriptions); // عرض بيانات الاشتراك
+            console.log("User subscriptions:", response.subscriptions); // عرض بيانات الاشتراك
         },
         error: function (error) {
-            console.error("Error details:", error);
+            console.error("Error checking subscription:", error);
             alert("حدث خطأ: " + (error.responseJSON?.error || "Unknown Error"));
         }
     });
 }
-
 
 // دالة التجديد
 window.renewSubscription = function (subscriptionType) {
@@ -322,16 +306,17 @@ window.renewSubscription = function (subscriptionType) {
         return;
     }
 
-    const telegramId = tg.initDataUnsafe?.user?.id;
     if (!telegramId) {
         alert("لا يمكن تنفيذ العملية: Telegram ID غير متوفر.");
         return;
     }
 
-    console.log("Data sent to server for renewal:", {
+    const renewalData = {
         telegram_id: telegramId,
         subscription_type: subscriptionType
-    });
+    };
+
+    console.log("Data sent to server for renewal:", renewalData);
 
     showLoading();
 
@@ -339,25 +324,20 @@ window.renewSubscription = function (subscriptionType) {
         url: "/api/renew",
         type: "POST",
         contentType: "application/json",
-        data: JSON.stringify({
-            telegram_id: telegramId,
-            subscription_type: subscriptionType
-        }),
+        data: JSON.stringify(renewalData),
         success: function (response) {
             alert(response.message);
             console.log("Renewal successful:", response);
         },
         error: function (error) {
-            console.error("Error details:", error);
-            const errorMessage = error.responseJSON?.error || "Unknown Error";
-            alert("حدث خطأ أثناء التجديد: " + errorMessage);
+            console.error("Error during renewal:", error);
+            alert("حدث خطأ أثناء التجديد: " + (error.responseJSON?.error || "Unknown Error"));
         },
         complete: function () {
             hideLoading();
         }
     });
 };
-
 
 // إضافة الأحداث لأزرار التجديد
 document.querySelectorAll('.renew-btn').forEach(button => {
@@ -367,7 +347,7 @@ document.querySelectorAll('.renew-btn').forEach(button => {
     });
 });
 
-// التعامل مع النقرات للأزرار
+// التعامل مع الأحداث عند تحميل الصفحة
 document.addEventListener("DOMContentLoaded", function () {
     // ربط الأحداث لأزرار الاشتراك
     document.querySelectorAll('.subscribe-btn').forEach(button => {
@@ -386,7 +366,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-//ظهور شريط التحميل عند الاشتراك والتجديد
+// دوال التحكم بشريط التحميل
 function showLoading() {
     const loader = document.getElementById("loader");
     if (loader) {
@@ -400,4 +380,3 @@ function hideLoading() {
         loader.style.display = "none";
     }
 }
-
