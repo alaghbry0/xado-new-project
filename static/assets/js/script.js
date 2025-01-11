@@ -3,45 +3,39 @@
 let tg = null;
 let telegramId = null;
 
-function initializeTelegramWebApp() {
+window.onload = function () {
+    if (!tg) {
+        console.warn("Telegram WebApp API not available.");
+        alert("يرجى تشغيل التطبيق من داخل Telegram.");
+        return;
+    }
+
     try {
-        tg = window.Telegram?.WebApp;
+        const userData = tg.initDataUnsafe?.user;
+        if (userData && userData.id) {
+            telegramId = userData.id;
+            const username = userData.username || "Unknown User";
+            const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
 
-        if (!tg) {
-            console.error("Telegram WebApp API not available.");
-            alert("يرجى تشغيل التطبيق من داخل Telegram.");
-            return;
+            console.log("Telegram ID:", telegramId);
+            console.log("Username:", username);
+            console.log("Full Name:", fullName);
+
+            // عرض بيانات المستخدم
+            const userNameElement = document.getElementById("user-name");
+            const userUsernameElement = document.getElementById("user-username");
+
+            if (userNameElement) userNameElement.textContent = fullName;
+            if (userUsernameElement) userUsernameElement.textContent = username;
+        } else {
+            console.warn("User data not available.");
+            alert("يرجى فتح التطبيق من داخل Telegram.");
         }
-
-        // تأكيد التهيئة
-        tg.ready(() => {
-            console.log("Telegram WebApp is ready!");
-
-            // التحقق من وجود البيانات
-            if (tg.initDataUnsafe?.user?.id) {
-                telegramId = tg.initDataUnsafe.user.id;
-                const username = tg.initDataUnsafe.user.username || "Unknown User";
-                const fullName = `${tg.initDataUnsafe.user.first_name || ''} ${tg.initDataUnsafe.user.last_name || ''}`.trim();
-
-                console.log("Telegram ID:", telegramId);
-                console.log("Username:", username);
-                console.log("Full Name:", fullName);
-
-                // تحديث واجهة المستخدم
-                updateUserUI(fullName, username);
-
-                // إرسال Telegram ID إلى الخادم
-                sendTelegramIDToServer(telegramId, username);
-            } else {
-                console.error("User data is not available after initialization.");
-                alert("لا يمكن استرداد بيانات المستخدم. يرجى المحاولة لاحقاً.");
-            }
-        });
     } catch (error) {
         console.error("Error initializing Telegram WebApp:", error);
-        alert("حدث خطأ أثناء تهيئة التطبيق. يرجى المحاولة لاحقاً.");
     }
-}
+};
+
 
 // تحديث واجهة المستخدم
 function updateUserUI(fullName, username) {
