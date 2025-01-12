@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import logging
-
+from telegram import Bot
 # إعداد تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO)
 
@@ -37,6 +37,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"Error in /start command: {e}")
         await update.message.reply_text("حدث خطأ أثناء إعداد التطبيق المصغر. يرجى المحاولة لاحقًا.")
+
+# وظيفة لإرسال رسالة عبر دردشة البوت
+async def send_message_to_user(user_id, message):
+    """
+    إرسال رسالة مباشرة إلى مستخدم عبر دردشة البوت.
+    """
+    try:
+        bot = Bot(token=TOKEN)  # إنشاء كائن البوت باستخدام التوكن
+        await bot.send_message(chat_id=user_id, text=message)
+        logging.info(f"تم إرسال الرسالة إلى المستخدم {user_id}: {message}")
+    except Exception as e:
+        logging.error(f"خطأ أثناء إرسال الرسالة إلى المستخدم {user_id}: {e}")
+
 
 # إعداد التطبيق
 if __name__ == "__main__":

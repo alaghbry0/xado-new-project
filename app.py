@@ -4,6 +4,9 @@ import logging
 from datetime import datetime, timezone, timedelta
 import sqlite3
 from flask_cors import CORS
+from db_utils import schedule_remove_user, schedule_reminders, add_user_to_channel
+from scheduler import start_scheduler
+
 
 # إعداد تسجيل الأخطاء والمعلومات
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -34,8 +37,9 @@ subscriptions = [
 # نقطة API للاشتراك
 @app.route("/api/subscribe", methods=["POST"])
 def subscribe():
-    conn = None  # تعريف conn لضمان وجوده في finally
+    conn = None
     try:
+        # استقبال البيانات من الطلب
         data = request.json
         logging.info(f"Received data: {data}")
 
@@ -45,7 +49,7 @@ def subscribe():
         logging.debug(f"Received telegram_id: {telegram_id}")
         logging.debug(f"Received subscription_type: {subscription_type}")
 
-        # التحقق من البيانات المفقودة
+        # التحقق من صحة البيانات المدخلة
         if not telegram_id or not subscription_type:
             return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
 
@@ -72,36 +76,64 @@ def subscribe():
 
         user_id = user[0]
 
-        # التحقق من وجود اشتراك حالي
+        # التحقق من الاشتراك الحالي
         cursor.execute("""
-            SELECT expiry_date FROM subscriptions
+            SELECT expiry_date, is_active FROM subscriptions
             WHERE user_id = ? AND subscription_type = ?
         """, (user_id, subscription_type))
         existing_subscription = cursor.fetchone()
 
         if existing_subscription:
+            expiry_date, is_active = existing_subscription
             try:
-                # تجديد الاشتراك الحالي
-                current_expiry = datetime.strptime(existing_subscription[0], "%Y-%m-%d %H:%M:%S")
-                new_expiry = (current_expiry + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+                current_expiry = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
+                if is_active:
+                    # تمديد الاشتراك النشط بإضافة 3 أيام
+                    new_expiry = (current_expiry + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
+                    message = f"تم تجديد اشتراكك حتى {new_expiry}"
+                else:
+                    # إعادة تفعيل الاشتراك وإضافة المستخدم إلى القناة
+                    new_expiry = (datetime.now() + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
+                    success = add_user_to_channel(telegram_id, subscription_type)
+                    if success:
+                        message = f"تم إعادة تفعيل اشتراكك بنجاح! ينتهي اشتراكك في {new_expiry}"
+                        cursor.execute("""
+                            UPDATE subscriptions
+                            SET is_active = TRUE
+                            WHERE user_id = ? AND subscription_type = ?
+                        """, (user_id, subscription_type))
+                    else:
+                        message = "حدث خطأ أثناء إضافة المستخدم إلى القناة. يرجى المحاولة لاحقًا."
+
+                # تحديث تاريخ انتهاء الاشتراك
                 cursor.execute("""
                     UPDATE subscriptions
                     SET expiry_date = ?
                     WHERE user_id = ? AND subscription_type = ?
                 """, (new_expiry, user_id, subscription_type))
-                message = f"تم تجديد اشتراك {subscription_type} حتى {new_expiry}"
             except ValueError as e:
-                logging.error(f"Error parsing expiry_date: {existing_subscription[0]} - {str(e)}")
+                logging.error(f"Error parsing expiry_date: {expiry_date} - {str(e)}")
                 return jsonify({"error": "Invalid date format in database."}), 500
         else:
-            # إنشاء اشتراك جديد
-            new_expiry = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
-            cursor.execute("""
-                INSERT INTO subscriptions (user_id, subscription_type, expiry_date)
-                VALUES (?, ?, ?)
-            """, (user_id, subscription_type, new_expiry))
-            message = f"تم الاشتراك في {subscription_type} بنجاح! ينتهي الاشتراك في {new_expiry}"
+            # إضافة اشتراك جديد لمدة 30 يومًا وإضافة المستخدم للقناة
+            new_expiry = (datetime.now() + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
+            success = add_user_to_channel(telegram_id, subscription_type)
+            if success:
+                message = f"تم اشتراكك بنجاح! ينتهي اشتراكك في {new_expiry}"
+                cursor.execute("""
+                    INSERT INTO subscriptions (user_id, subscription_type, expiry_date, is_active)
+                    VALUES (?, ?, ?, TRUE)
+                """, (user_id, subscription_type, new_expiry))
 
+                # استدعاء جدولة التذكيرات
+                schedule_reminders(user_id, subscription_type, new_expiry)
+
+                # استدعاء جدولة الإزالة
+                schedule_remove_user(user_id, subscription_type, new_expiry)
+            else:
+                message = "حدث خطأ أثناء إضافة المستخدم إلى القناة. يرجى المحاولة لاحقًا."
+
+        # حفظ التغييرات في قاعدة البيانات
         conn.commit()
         return jsonify({"message": message, "expiry_date": new_expiry}), 200
 
@@ -120,8 +152,9 @@ def subscribe():
 # نقطة API للتجديد
 @app.route("/api/renew", methods=["POST"])
 def renew_subscription():
-    conn = None  # تعريف conn هنا لضمان وجوده في finally
+    conn = None
     try:
+        # استقبال البيانات من الطلب
         data = request.json
         telegram_id = data.get("telegram_id")
         subscription_type = data.get("subscription_type")
@@ -142,24 +175,50 @@ def renew_subscription():
 
         # التحقق من الاشتراك الحالي
         cursor.execute("""
-            SELECT expiry_date FROM subscriptions
+            SELECT expiry_date, is_active FROM subscriptions
             WHERE user_id = ? AND subscription_type = ?
         """, (user_id, subscription_type))
         existing_subscription = cursor.fetchone()
 
         if existing_subscription:
+            expiry_date, is_active = existing_subscription
             try:
-                current_expiry = datetime.strptime(existing_subscription[0], "%Y-%m-%d %H:%M:%S")
-                new_expiry = (current_expiry + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+                current_expiry = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
+
+                if is_active:
+                    # تمديد الاشتراك الحالي
+                    new_expiry = (current_expiry + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    # إعادة تفعيل الاشتراك
+                    new_expiry = (datetime.now() + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
+
+                    # محاولة إعادة إضافة المستخدم إلى القناة
+                    success = add_user_to_channel(telegram_id, subscription_type)
+                    if not success:
+                        return jsonify({"error": "Failed to re-add user to the channel"}), 500
+
+                    # تحديث حالة الاشتراك
+                    cursor.execute("""
+                        UPDATE subscriptions
+                        SET is_active = TRUE
+                        WHERE user_id = ? AND subscription_type = ?
+                    """, (user_id, subscription_type))
+
+                # تحديث تاريخ انتهاء الاشتراك
                 cursor.execute("""
                     UPDATE subscriptions
                     SET expiry_date = ?
                     WHERE user_id = ? AND subscription_type = ?
                 """, (new_expiry, user_id, subscription_type))
+
+                # إعادة جدولة التذكيرات والإزالة
+                schedule_reminders(user_id, subscription_type, new_expiry)
+                schedule_remove_user(user_id, subscription_type, new_expiry)
+
                 conn.commit()
                 return jsonify({"message": f"تم تجديد الاشتراك حتى {new_expiry}"}), 200
             except ValueError as e:
-                logging.error(f"Invalid date format: {existing_subscription[0]} - {str(e)}")
+                logging.error(f"Invalid date format: {expiry_date} - {str(e)}")
                 return jsonify({"error": "Invalid date format in database."}), 500
         else:
             return jsonify({"error": "Subscription not found for the provided user and type"}), 404
@@ -167,7 +226,7 @@ def renew_subscription():
         logging.error(f"Unexpected error in /api/renew: {str(e)}")
         return jsonify({"error": "An unexpected error occurred"}), 500
     finally:
-        if conn:  # تحقق من أن conn ليس None قبل محاولة إغلاقه
+        if conn:
             conn.close()
 
 # نقطة API للتحقق من الاشتراك
@@ -269,6 +328,7 @@ def profile():
 
 
 if __name__ == "__main__":
+    start_scheduler()  # تشغيل جدولة المهام
     # قراءة المنفذ من متغير البيئة $PORT، مع قيمة افتراضية 5000
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
