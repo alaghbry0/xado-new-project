@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 import sqlite3
 from flask_cors import CORS
-from db_utils import schedule_remove_user, schedule_reminders, add_user_to_channel
+from database.db_utils import schedule_remove_user, schedule_reminders, add_user_to_channel
 from scheduler import start_scheduler
 
 

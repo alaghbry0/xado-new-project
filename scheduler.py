@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-from db_utils import remove_user_from_channel  # استيراد الدالة من db_utils
+from database.db_utils import remove_user_from_channel  # استيراد الدالة من db_utils
 
 # وظيفة لتنفيذ المهام المجدولة
 def execute_scheduled_tasks():
