@@ -1,4 +1,5 @@
 import aiosqlite
+import asyncio
 from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.db_utils import remove_user_from_channel, TELEGRAM_BOT_TOKEN
@@ -70,7 +71,8 @@ def start_scheduler():
     """
     بدء تشغيل جدولة المهام باستخدام APScheduler.
     """
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(execute_scheduled_tasks, 'interval', minutes=1)  # تنفيذ المهام المجدولة كل دقيقة
+    loop = asyncio.get_event_loop()
+    scheduler = AsyncIOScheduler(event_loop=loop)
+    scheduler.add_job(execute_scheduled_tasks, 'interval', minutes=1)  # جدولة كل دقيقة
     scheduler.start()
     print("تم تشغيل جدولة المهام بنجاح.")
