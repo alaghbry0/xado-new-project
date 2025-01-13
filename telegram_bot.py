@@ -2,6 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import logging
 from telegram import Bot
+
 # إعداد تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO)
 
