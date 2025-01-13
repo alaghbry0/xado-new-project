@@ -8,6 +8,7 @@ def execute_scheduled_tasks():
     """
     تنفيذ المهام المجدولة بناءً على جدول المهام.
     """
+    print("Starting scheduled tasks execution")
     conn = sqlite3.connect("database/database.db")
     cursor = conn.cursor()
 
@@ -18,14 +19,20 @@ def execute_scheduled_tasks():
     """, (now,))
     tasks = cursor.fetchall()
 
+    print(f"Found {len(tasks)} tasks to execute.")
     for task_id, task_type, user_id in tasks:
+        print(f"Executing task {task_id}: {task_type} for user {user_id}")
+
         if task_type == "remove_user":
+            print(f"Calling remove_user_from_channel for user {user_id}")
             success = remove_user_from_channel(user_id)
             if success:
                 print(f"تم تنفيذ إزالة المستخدم {user_id} بنجاح.")
         elif task_type == "first_reminder":
+            print(f"Calling send_reminder for user {user_id} with first reminder message")
             send_reminder(user_id, "اشتراكك سينتهي قريبًا! لا تنسَ التجديد.")
         elif task_type == "second_reminder":
+            print(f"Calling send_reminder for user {user_id} with second reminder message")
             send_reminder(user_id, "تنبيه أخير: اشتراكك سينتهي قريبًا جدًا!")
 
         # تحديث حالة المهمة إلى "completed"
@@ -34,12 +41,15 @@ def execute_scheduled_tasks():
     conn.commit()
     conn.close()
 
-# وظيفة لإرسال التذكيرات (يمكن تعديلها لتتصل بـ Telegram API)
+# وظيفة لإرسال التذكيرات
 def send_reminder(user_id, message):
     """
-    إرسال تذكير للمستخدم. يمكن استبدال الطباعة باستخدام Telegram Bot API.
+    إرسال رسالة تذكير للمستخدم.
+    :param user_id: معرف المستخدم في تيليجرام.
+    :param message: نص الرسالة التذكيرية.
     """
-    print(f"إرسال تذكير للمستخدم {user_id}: {message}")
+    print(f"Sending reminder to user {user_id}: {message}")
+    # منطق إرسال الرسالة هنا
 
 # إعداد الجدولة باستخدام APScheduler
 def start_scheduler():

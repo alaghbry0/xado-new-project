@@ -1,24 +1,46 @@
 import sqlite3
+from tabulate import tabulate
+
 def view_data():
     conn = sqlite3.connect("database/database.db")
     cursor = conn.cursor()
 
     # عرض المستخدمين
-    print("Users:")
+    print("Users Table:")
     cursor.execute("SELECT * FROM users")
     users = cursor.fetchall()
-    for user in users:
-        print(f"ID: {user[0]}, Telegram ID: {user[1]}, Username: {user[2]}, Full Name: {user[3]}")
+    if users:
+        print(tabulate(users, headers=["ID", "Telegram ID", "Username", "Full Name"], tablefmt="pretty"))
+    else:
+        print("No users found.")
 
     # عرض الاشتراكات
-    print("\nSubscriptions:")
-    cursor.execute("SELECT subscriptions.id, users.full_name, subscriptions.subscription_type, subscriptions.expiry_date "
-                   "FROM subscriptions "
-                   "JOIN users ON subscriptions.user_id = users.id")
+    print("\nSubscriptions Table:")
+    cursor.execute("""
+        SELECT subscriptions.id, users.full_name, subscriptions.subscription_type, 
+               subscriptions.expiry_date, subscriptions.is_active, subscriptions.reminders_sent
+        FROM subscriptions
+        JOIN users ON subscriptions.user_id = users.id
+    """)
     subscriptions = cursor.fetchall()
-    for subscription in subscriptions:
-        print(f"Subscription ID: {subscription[0]}, User: {subscription[1]}, "
-              f"Type: {subscription[2]}, Expiry: {subscription[3]}")
+    if subscriptions:
+        print(tabulate(subscriptions, headers=["ID", "Full Name", "Type", "Expiry", "Active", "Reminders Sent"], tablefmt="pretty"))
+    else:
+        print("No subscriptions found.")
+
+    # عرض المهام المجدولة
+    print("\nScheduled Tasks Table:")
+    cursor.execute("""
+        SELECT scheduled_tasks.id, scheduled_tasks.task_type, users.full_name, 
+               scheduled_tasks.execute_at, scheduled_tasks.status
+        FROM scheduled_tasks
+        JOIN users ON scheduled_tasks.user_id = users.id
+    """)
+    tasks = cursor.fetchall()
+    if tasks:
+        print(tabulate(tasks, headers=["ID", "Task Type", "Full Name", "Execute At", "Status"], tablefmt="pretty"))
+    else:
+        print("No scheduled tasks found.")
 
     conn.close()
 
@@ -27,4 +49,3 @@ if __name__ == "__main__":
         view_data()
     except Exception as e:
         print(f"Error occurred: {e}")
-

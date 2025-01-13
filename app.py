@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 import sqlite3
 from flask_cors import CORS
-from database.db_utils import schedule_remove_user, schedule_reminders, add_user_to_channel
+from database.db_utils import schedule_remove_user, schedule_reminders, add_user_to_channel, schedule_retry_add_to_channel
 from scheduler import start_scheduler
 
 
@@ -51,11 +51,12 @@ def subscribe():
 
         # التحقق من صحة البيانات المدخلة
         if not telegram_id or not subscription_type:
-            return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
+            logging.error("Missing 'telegram_id' or 'subscription_type'")
+            return jsonify({"error": "Missing 'telegram_id' or 'subscription_type'"}), 400
 
-        # التحقق من صحة نوع الاشتراك
         valid_subscription_types = ["Forex VIP Channel", "Crypto VIP Channel"]
         if subscription_type not in valid_subscription_types:
+            logging.error(f"Invalid subscription type: {subscription_type}")
             return jsonify({"error": "Invalid subscription type"}), 400
 
         # فتح الاتصال بقاعدة البيانات
@@ -72,6 +73,7 @@ def subscribe():
         cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
         user = cursor.fetchone()
         if not user:
+            logging.error(f"User not found for telegram_id: {telegram_id}")
             return jsonify({"error": "User not found"}), 404
 
         user_id = user[0]
@@ -88,7 +90,7 @@ def subscribe():
             try:
                 current_expiry = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
                 if is_active:
-                    # تمديد الاشتراك النشط بإضافة 3 أيام
+                    # تمديد الاشتراك النشط
                     new_expiry = (current_expiry + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
                     message = f"تم تجديد اشتراكك حتى {new_expiry}"
                 else:
@@ -104,6 +106,8 @@ def subscribe():
                         """, (user_id, subscription_type))
                     else:
                         message = "حدث خطأ أثناء إضافة المستخدم إلى القناة. يرجى المحاولة لاحقًا."
+                        # جدولة محاولة جديدة لإضافة المستخدم لاحقًا
+                        schedule_retry_add_to_channel(user_id, subscription_type)
 
                 # تحديث تاريخ انتهاء الاشتراك
                 cursor.execute("""
@@ -115,7 +119,7 @@ def subscribe():
                 logging.error(f"Error parsing expiry_date: {expiry_date} - {str(e)}")
                 return jsonify({"error": "Invalid date format in database."}), 500
         else:
-            # إضافة اشتراك جديد لمدة 30 يومًا وإضافة المستخدم للقناة
+            # إضافة اشتراك جديد
             new_expiry = (datetime.now() + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
             success = add_user_to_channel(telegram_id, subscription_type)
             if success:
@@ -125,25 +129,24 @@ def subscribe():
                     VALUES (?, ?, ?, TRUE)
                 """, (user_id, subscription_type, new_expiry))
 
-                # استدعاء جدولة التذكيرات
+                # جدولة التذكيرات والإزالة
                 schedule_reminders(user_id, subscription_type, new_expiry)
-
-                # استدعاء جدولة الإزالة
                 schedule_remove_user(user_id, subscription_type, new_expiry)
             else:
                 message = "حدث خطأ أثناء إضافة المستخدم إلى القناة. يرجى المحاولة لاحقًا."
 
-        # حفظ التغييرات في قاعدة البيانات
+        # حفظ التغييرات
         conn.commit()
+        logging.info(f"Subscription processed successfully for user_id: {user_id}")
         return jsonify({"message": message, "expiry_date": new_expiry}), 200
 
     except sqlite3.OperationalError as e:
-        logging.error(f"Database error: {str(e)}")
+        logging.error(f"Database error: {e}")
         return jsonify({"error": "Database error, please try again later."}), 500
 
     except Exception as e:
-        logging.error(f"Unexpected error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Unexpected error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
     finally:
         if conn:
