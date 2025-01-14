@@ -1,10 +1,13 @@
-import sqlite3
-import aiosqlite
+from models import ScheduledTask
+import logging
+from database.init import db
+
+from config import TELEGRAM_BOT_TOKEN, DEFAULT_CHANNEL_ID       # إعداد توكن البوت ومعرف القناة الافتراضي
 from datetime import datetime, timedelta
 from telegram import Bot
+from sqlalchemy.exc import OperationalError
 # استيراد وظيفة الإرسال من telegram_bot
 from telegram_bot import send_message_to_user
-import asyncio
 import time
 
 # الإعدادات الافتراضية للتذكيرات
@@ -19,13 +22,6 @@ DEFAULT_REMINDER_SETTINGS = {
     "first_reminder": 2 / 60,  # تحويل دقيقتين إلى ساعات (2 ÷ 60)
     "second_reminder": 1 / 60  # تحويل دقيقة واحدة إلى ساعات (1 ÷ 60)
 }
-
-
-
-# إعداد توكن البوت ومعرف القناة الافتراضي
-TELEGRAM_BOT_TOKEN = "7375681204:AAE8CpTeEpEw4gscDX0Caxj2m_rHvHv5IGc"  # استبدله بالتوكن الخاص بك
-DEFAULT_CHANNEL_ID = "-1002277553158"  # المعرف الافتراضي للقناة
-
 
 # وظيفة لإضافة المستخدم إلى القناة
 async def add_user_to_channel(user_id, subscription_type=None, channel_id=None):
@@ -49,16 +45,16 @@ async def add_user_to_channel(user_id, subscription_type=None, channel_id=None):
 
         # إذا فشل الإضافة التلقائية، إنشاء رابط دعوة
         try:
-            invite_link = bot.create_chat_invite_link(
+            invite_link = await bot.create_chat_invite_link(
                 chat_id=channel_id,
                 member_limit=1,  # رابط مخصص لمستخدم واحد فقط
                 expire_date=None  # لا يوجد تاريخ انتهاء
             )
             # إرسال رابط الدعوة عبر دردشة البوت
-            asyncio.run(send_message_to_user(
+            await send_message_to_user(
                 user_id,
-                f"مرحبًا! لم نتمكن من إضافتك مباشرة إلى القناة. يمكنك الانضمام عبر الرابط التالي:\n{invite_link}"
-            ))
+                f"مرحبًا! لم نتمكن من إضافتك مباشرة إلى القناة. يمكنك الانضمام عبر الرابط التالي:\n{invite_link.invite_link}"
+            )
             print(f"تم إرسال رابط الدعوة إلى المستخدم {user_id}.")
             return True
         except Exception as invite_error:
@@ -68,24 +64,30 @@ async def add_user_to_channel(user_id, subscription_type=None, channel_id=None):
 
 #دالة لإعادة المحاولة
 def schedule_retry_add_to_channel(user_id, subscription_type):
-    conn = sqlite3.connect("database/database.db")
-    cursor = conn.cursor()
-    retry_time = datetime.now() + timedelta(minutes=5)  # محاولة بعد 5 دقائق
-    cursor.execute("""
-        INSERT INTO scheduled_tasks (task_type, user_id, execute_at, status)
-        VALUES (?, ?, ?, ?)
-    """, ("retry_add", user_id, retry_time, "pending"))
-    conn.commit()
-    conn.close()
-    print(f"تم جدولة إعادة المحاولة لإضافة المستخدم {user_id}.")
+    """
+    جدولة محاولة إعادة إضافة المستخدم إلى القناة.
+    """
+    retry_time = datetime.now() + timedelta(minutes=5)  # المحاولة بعد 5 دقائق
+
+    # إضافة المهمة إلى قاعدة البيانات
+    retry_task = ScheduledTask(
+        task_type="retry_add",
+        user_id=user_id,
+        execute_at=retry_time,
+        status="pending"
+    )
+    try:
+        db.session.add(retry_task)
+        db.session.commit()
+        print(f"تم جدولة إعادة المحاولة لإضافة المستخدم {user_id}.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"خطأ أثناء جدولة إعادة المحاولة للمستخدم {user_id}: {e}")
 
 # تنفيذ العمليات على قاعدة البيانات حتى في حالة ظهور خطأ
-
-def execute_with_retry(cursor, query, params=None, retries=3, delay=1):
+def execute_with_retry(query, params=None, retries=3, delay=1):
     """
-    ينفذ استعلامًا مع إعادة المحاولة عند مواجهة خطأ "database is locked".
-
-    :param cursor: مؤشر قاعدة البيانات.
+    ينفذ استعلامًا مع إعادة المحاولة عند مواجهة خطأ.
     :param query: نص الاستعلام SQL.
     :param params: الوسائط المستخدمة مع الاستعلام.
     :param retries: عدد مرات إعادة المحاولة.
@@ -95,15 +97,17 @@ def execute_with_retry(cursor, query, params=None, retries=3, delay=1):
     for attempt in range(retries):
         try:
             if params:
-                cursor.execute(query, params)
+                db.session.execute(query, params)
             else:
-                cursor.execute(query)
+                db.session.execute(query)
+            db.session.commit()
             return True
-        except sqlite3.OperationalError as e:
+        except OperationalError as e:
             if "database is locked" in str(e):
                 print(f"Database is locked. Retrying in {delay} seconds... (Attempt {attempt + 1}/{retries})")
                 time.sleep(delay)
             else:
+                db.session.rollback()
                 raise e
     print("Failed to execute query after retries.")
     return False
@@ -118,33 +122,43 @@ async def schedule_reminders(user_id, subscription_type, expiry_date, reminder_s
         # استخدام الإعدادات الافتراضية أو المخصصة
         settings = reminder_settings if reminder_settings else DEFAULT_REMINDER_SETTINGS
 
-        expiry_datetime = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
-        first_reminder_time = expiry_datetime - timedelta(hours=settings["first_reminder"])
-        second_reminder_time = expiry_datetime - timedelta(hours=settings["second_reminder"])
+        # التأكد من أن expiry_date هو كائن datetime
+        if isinstance(expiry_date, str):
+            logging.info(f"Parsing expiry_date from string: {expiry_date}")
+            expiry_date = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
+            logging.info(f"Expiry date after parsing (datetime object): {expiry_date}")
 
-        # فتح اتصال مع قاعدة البيانات
-        async with aiosqlite.connect("database/database.db") as conn:
-            cursor = await conn.cursor()
+        # حساب أوقات التذكيرات
+        first_reminder_time = expiry_date - timedelta(hours=settings["first_reminder"])
+        second_reminder_time = expiry_date - timedelta(hours=settings["second_reminder"])
 
-            # جدولة التذكير الأول
-            await cursor.execute("""
-                INSERT INTO scheduled_tasks (task_type, user_id, execute_at, status)
-                VALUES (?, ?, ?, ?)
-            """, ("first_reminder", user_id, first_reminder_time, "pending"))
+        # استخدام db.engine لإضافة المهام إلى قاعدة البيانات
+        async with db.engine.begin() as conn:
+            # إضافة التذكير الأول
+            await conn.execute(
+                db.insert(ScheduledTask).values(
+                    task_type="first_reminder",
+                    user_id=user_id,
+                    execute_at=first_reminder_time,
+                    status="pending"
+                )
+            )
+            logging.info(f"First reminder scheduled for user {user_id} at {first_reminder_time}")
 
-            # جدولة التذكير الثاني
-            await cursor.execute("""
-                INSERT INTO scheduled_tasks (task_type, user_id, execute_at, status)
-                VALUES (?, ?, ?, ?)
-            """, ("second_reminder", user_id, second_reminder_time, "pending"))
+            # إضافة التذكير الثاني
+            await conn.execute(
+                db.insert(ScheduledTask).values(
+                    task_type="second_reminder",
+                    user_id=user_id,
+                    execute_at=second_reminder_time,
+                    status="pending"
+                )
+            )
+            logging.info(f"Second reminder scheduled for user {user_id} at {second_reminder_time}")
 
-            # حفظ التغييرات
-            await conn.commit()
-            print(f"تم جدولة التذكيرات للمستخدم {user_id}.")
-
+        logging.info(f"تم جدولة التذكيرات للمستخدم {user_id}.")
     except Exception as e:
-        print(f"خطأ أثناء جدولة التذكيرات: {e}")
-        # يمكن تسجيل الأخطاء في السجل لتحليلها لاحقًا
+        logging.error(f"خطأ أثناء جدولة التذكيرات: {e}")
 
 # وظيفة جدولة إزالة المستخدم
 async def schedule_remove_user(user_id, subscription_type, expiry_date):
@@ -152,33 +166,32 @@ async def schedule_remove_user(user_id, subscription_type, expiry_date):
     تقوم بجدولة إزالة المستخدم من القناة بعد انتهاء اشتراكه مباشرة.
     """
     try:
+        # التأكد من أن expiry_date هو كائن datetime
+        if isinstance(expiry_date, str):
+            expiry_date = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
+
         # حساب وقت الإزالة
-        remove_time = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S") + timedelta(seconds=1)
+        remove_time = expiry_date + timedelta(seconds=1)
 
-        # فتح اتصال مع قاعدة البيانات
-        async with aiosqlite.connect("database/database.db") as conn:
-            cursor = await conn.cursor()
-
-            # إدخال المهمة إلى جدول المهام المجدولة
-            await cursor.execute("""
-                INSERT INTO scheduled_tasks (task_type, user_id, execute_at, status)
-                VALUES (?, ?, ?, ?)
-            """, ("remove_user", user_id, remove_time, "pending"))
-
-            # حفظ التغييرات
-            await conn.commit()
-            print(f"تم جدولة إزالة المستخدم {user_id} بعد انتهاء الاشتراك.")
-
+        # استخدام db.engine لإضافة المهمة إلى قاعدة البيانات
+        async with db.engine.begin() as conn:
+            await conn.execute(
+                db.insert(ScheduledTask).values(
+                    task_type="remove_user",
+                    user_id=user_id,
+                    execute_at=remove_time,
+                    status="pending"
+                )
+            )
+        logging.info(f"تم جدولة إزالة المستخدم {user_id} بعد انتهاء الاشتراك.")
     except Exception as e:
-        print(f"خطأ أثناء جدولة الإزالة: {e}")
-        # يمكن تسجيل الأخطاء في السجل لتحليلها لاحقًا
+        logging.error(f"خطأ أثناء جدولة الإزالة: {e}")
 
 # وظيفة لإزالة المستخدم من القناة باستخدام Telegram Bot API
-async def remove_user_from_channel(user_id, subscription_type=None, channel_id=None):
+def remove_user_from_channel(user_id, subscription_type=None, channel_id=None):
     """
     وظيفة لإزالة المستخدم من القناة باستخدام Telegram Bot API.
     """
-    # إنشاء كائن البوت باستخدام التوكن
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
     # استخدام القناة الافتراضية إذا لم يتم تمرير قناة محددة
@@ -186,12 +199,10 @@ async def remove_user_from_channel(user_id, subscription_type=None, channel_id=N
         channel_id = DEFAULT_CHANNEL_ID
 
     try:
-        # فتح جلسة البوت باستخدام السياق async with
-        async with bot:
-            # إزالة المستخدم من القناة
-            await bot.ban_chat_member(chat_id=channel_id, user_id=user_id)
-            print(f"تمت إزالة المستخدم {user_id} من القناة {channel_id}.")
-            return True
+        # إزالة المستخدم من القناة
+        bot.ban_chat_member(chat_id=channel_id, user_id=user_id)
+        logging.info(f"تمت إزالة المستخدم {user_id} من القناة {channel_id}.")
+        return True
     except Exception as e:
-        print(f"خطأ أثناء إزالة المستخدم {user_id} من القناة {channel_id}: {e}")
+        logging.error(f"خطأ أثناء إزالة المستخدم {user_id} من القناة {channel_id}: {e}")
         return False

@@ -1,13 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import logging
+from config import TELEGRAM_BOT_TOKEN
 from telegram import Bot
 
 # إعداد تسجيل الأخطاء
 logging.basicConfig(level=logging.INFO)
-
-# توكن البوت
-TOKEN = "7375681204:AAE8CpTeEpEw4gscDX0Caxj2m_rHvHv5IGc"
 
 # رابط التطبيق المصغر
 WEB_APP_URL = "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/"
@@ -45,7 +43,7 @@ async def send_message_to_user(user_id, message):
     إرسال رسالة مباشرة إلى مستخدم عبر دردشة البوت.
     """
     try:
-        bot = Bot(token=TOKEN)  # إنشاء كائن البوت باستخدام التوكن
+        bot = Bot(token=TELEGRAM_BOT_TOKEN)  # إنشاء كائن البوت باستخدام التوكن
         await bot.send_message(chat_id=user_id, text=message)
         logging.info(f"تم إرسال الرسالة إلى المستخدم {user_id}: {message}")
     except Exception as e:
@@ -54,7 +52,7 @@ async def send_message_to_user(user_id, message):
 
 # إعداد التطبيق
 if __name__ == "__main__":
-    application = ApplicationBuilder().token(TOKEN).build()
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     # إضافة أوامر البوت
     application.add_handler(CommandHandler("start", start))
