@@ -1,29 +1,31 @@
-
+import asyncpg
 import asyncio
+from config import DATABASE_CONFIG
 from quart import Quart, request, jsonify, render_template
 import logging
-from database.init import db
+from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
 from datetime import datetime, timezone, timedelta
-import sqlite3
 from quart_cors import cors
-from database.db_utils import schedule_remove_user, schedule_reminders, add_user_to_channel, schedule_retry_add_to_channel
-from models import db, User, Subscription
+from database.db_utils import schedule_remove_user, schedule_reminders, add_user_to_channel
 # إنشاء التطبيق
 app = Quart(__name__)
 app = cors(app)  # تمكين CORS لجميع الطلبات
 
+@app.before_serving
+async def create_db_connection():
+    # إنشاء اتصال مع قاعدة البيانات عند بدء التطبيق
+    app.db_pool = await asyncpg.create_pool(**DATABASE_CONFIG)
+    logging.info("Database connection established!")
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://exaado_user:Moh*770175667@localhost:5432/exaado_db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db.init_app(app)
-# تهيئة SQLAlchemy
-
-
+@app.after_serving
+async def close_db_connection():
+    # إغلاق الاتصال بقاعدة البيانات عند إيقاف التطبيق
+    await app.db_pool.close()
+    logging.info("Database connection closed!")
 
 # إعداد تسجيل الأخطاء والمعلومات
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-
 
 
 # بيانات الاشتراكات الوهمية
@@ -51,89 +53,90 @@ async def subscribe():
     try:
         # استقبال البيانات من الطلب
         data = await request.get_json()
-        logging.info(f"Received data: {data}")
-
-        telegram_id = data.get("telegram_id")
+        telegram_id = int(data.get("telegram_id"))
         subscription_type = data.get("subscription_type")
+        logging.info(f"Received telegram_id: {telegram_id}, type: {type(telegram_id)}")
 
         # التحقق من صحة البيانات المدخلة
         if not telegram_id or not subscription_type:
             logging.error("Missing 'telegram_id' or 'subscription_type'")
-            return jsonify({"error": "Missing 'telegram_id' or 'subscription_type'"}), 400
+            return jsonify({"error": "Missing 'telegram_id' or 'subscription_type"}), 400
 
-        # التحقق من نوع الاشتراك
         valid_subscription_types = ["Forex VIP Channel", "Crypto VIP Channel"]
         if subscription_type not in valid_subscription_types:
             logging.error(f"Invalid subscription type: {subscription_type}")
             return jsonify({"error": "Invalid subscription type"}), 400
 
-        # البحث عن المستخدم في قاعدة البيانات
-        user = await User.query.filter_by(telegram_id=telegram_id).first()
-        if not user:
-            # إذا لم يكن المستخدم موجودًا، إضافته إلى قاعدة البيانات
-            user = User(telegram_id=telegram_id)
-            db.session.add(user)
-            db.session.commit()
-            logging.info(f"User created: {user.id}")
+        async with app.db_pool.acquire() as connection:
+            # البحث عن المستخدم
+            user = await connection.fetchrow(
+                "SELECT * FROM users WHERE telegram_id = $1", telegram_id
+            )
 
-        # البحث عن الاشتراك الحالي
-        subscription = await Subscription.query.filter_by(user_id=user.id, subscription_type=subscription_type).first()
+            if not user:
+                # إضافة المستخدم
+                await connection.execute(
+                    "INSERT INTO users (telegram_id) VALUES ($1)", telegram_id
+                )
+                user = await connection.fetchrow(
+                    "SELECT * FROM users WHERE telegram_id = $1", telegram_id
+                )
 
-        if subscription:
-            try:
-                current_expiry = subscription.expiry_date
-                if subscription.is_active:
-                    # تمديد الاشتراك الحالي
-                    new_expiry = current_expiry + timedelta(minutes=30)
-                    subscription.expiry_date = new_expiry
+            # البحث عن الاشتراك
+            subscription = await connection.fetchrow(
+                "SELECT * FROM subscriptions WHERE user_id = $1 AND subscription_type = $2",
+                user['id'], subscription_type
+            )
+
+            if subscription:
+                if subscription['is_active']:
+                    # تمديد الاشتراك
+                    new_expiry = subscription['expiry_date'] + timedelta(minutes=3)
+                    await connection.execute(
+                        "UPDATE subscriptions SET expiry_date = $1 WHERE id = $2",
+                        new_expiry, subscription['id']
+                    )
                     message = f"تم تجديد اشتراكك حتى {new_expiry.strftime('%Y-%m-%d %H:%M:%S')}"
                 else:
                     # إعادة تفعيل الاشتراك
-                    new_expiry = datetime.now() + timedelta(minutes=30)
-                    success = await add_user_to_channel(user.telegram_id, subscription_type)
+                    new_expiry = datetime.now() + timedelta(minutes=3)
+                    success = await add_user_to_channel(telegram_bot, user['telegram_id'], subscription_type)
+
                     if success:
-                        subscription.is_active = True
-                        subscription.expiry_date = new_expiry
+                        await connection.execute(
+                            "UPDATE subscriptions SET is_active = TRUE, expiry_date = $1 WHERE id = $2",
+                            new_expiry, subscription['id']
+                        )
                         message = f"تم إعادة تفعيل اشتراكك بنجاح! ينتهي اشتراكك في {new_expiry.strftime('%Y-%m-%d %H:%M:%S')}"
                     else:
+                        logging.error(f"Failed to add user {user['telegram_id']} to channel.")
                         message = "حدث خطأ أثناء إضافة المستخدم إلى القناة. سيتم المحاولة لاحقًا."
-                        schedule_retry_add_to_channel(user.id, subscription_type)
 
-                # تحديث حالة الاشتراك
-                db.session.commit()
-            except ValueError as db_error:
-                logging.error(f"Error parsing expiry_date: {subscription.expiry_date} - {str(db_error)}")
-                return jsonify({"error": "Invalid date format in database."}), 500
-        else:
-            # إنشاء اشتراك جديد
-            new_expiry = datetime.now() + timedelta(minutes=30)
-            success = await add_user_to_channel(user.telegram_id, subscription_type)
-            if success:
-                subscription = Subscription(
-                    user_id=user.id,
-                    subscription_type=subscription_type,
-                    expiry_date=new_expiry,
-                    is_active=True
-                )
-                db.session.add(subscription)
-                db.session.commit()
-
-                # جدولة التذكيرات والإزالة
-                await schedule_reminders(user.id, subscription_type, new_expiry)
-                await schedule_remove_user(user.id, subscription_type, new_expiry)
-
-                message = f"تم اشتراكك بنجاح! ينتهي اشتراكك في {new_expiry.strftime('%Y-%m-%d %H:%M:%S')}"
             else:
-                message = "حدث خطأ أثناء إضافة المستخدم إلى القناة. سيتم المحاولة لاحقًا."
-                schedule_retry_add_to_channel(user.id, subscription_type)
+                # إنشاء اشتراك جديد
+                new_expiry = datetime.now() + timedelta(minutes=3)
+                success = await add_user_to_channel(user['telegram_id'], subscription_type)
+                if success:
+                    await connection.execute(
+                        """
+                        INSERT INTO subscriptions (user_id, subscription_type, expiry_date, is_active)
+                        VALUES ($1, $2, $3, TRUE)
+                        """, user['id'], subscription_type, new_expiry
+                    )
+                    # جدولة التذكيرات والإزالة
+                    await schedule_reminders(connection, user['id'], subscription_type, new_expiry)
+                    await schedule_remove_user(connection, user['id'], new_expiry)
+                    message = f"تم اشتراكك بنجاح! ينتهي اشتراكك في {new_expiry.strftime('%Y-%m-%d %H:%M:%S')}"
+                else:
+                    logging.error(f"Failed to add user {user['telegram_id']} to channel.")
+                    message = "حدث خطأ أثناء إضافة المستخدم إلى القناة. سيتم المحاولة لاحقًا."
 
-        logging.info(f"Subscription processed successfully for user_id: {user.id}")
+        logging.info(f"Subscription processed successfully for user_id: {user['id']}")
         return jsonify({"message": message, "expiry_date": new_expiry.strftime('%Y-%m-%d %H:%M:%S')}), 200
 
-    except Exception as add_error:
-        logging.error(f"Unexpected error: {add_error}")
+    except Exception as e:
+        logging.error(f"Error in subscribe: {str(e)}")
         return jsonify({"error": "An unexpected error occurred"}), 500
-
 
 # نقطة API للتجديد
 @app.route("/api/renew", methods=["POST"])
@@ -146,7 +149,7 @@ async def renew_subscription():
         subscription_type = data.get("subscription_type")
 
         if not telegram_id or not subscription_type:
-            return jsonify({"error": "Missing telegram_id or subscription_type"}), 400
+            return await jsonify({"error": "Missing telegram_id or subscription_type"}), 400
 
         conn = sqlite3.connect("database/database.db")
         cursor = conn.cursor()
@@ -155,7 +158,7 @@ async def renew_subscription():
         cursor.execute("SELECT id FROM users WHERE telegram_id = ?", (telegram_id,))
         user = cursor.fetchone()
         if not user:
-            return jsonify({"error": "User not found"}), 404
+            return await jsonify({"error": "User not found"}), 404
 
         user_id = user[0]
 
@@ -173,15 +176,15 @@ async def renew_subscription():
 
                 if is_active:
                     # تمديد الاشتراك الحالي
-                    new_expiry = (current_expiry + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
+                    new_expiry = (current_expiry + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
                 else:
                     # إعادة تفعيل الاشتراك
-                    new_expiry = (datetime.now() + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
+                    new_expiry = (datetime.now() + timedelta(minutes=3)).strftime("%Y-%m-%d %H:%M:%S")
 
                     # محاولة إعادة إضافة المستخدم إلى القناة
                     success = add_user_to_channel(telegram_id, subscription_type)
                     if not success:
-                        return jsonify({"error": "Failed to re-add user to the channel"}), 500
+                        return await jsonify({"error": "Failed to re-add user to the channel"}), 500
 
                     # تحديث حالة الاشتراك
                     cursor.execute("""
@@ -220,65 +223,62 @@ async def renew_subscription():
 async def check_subscription():
     try:
         # الحصول على `telegram_id` من بارامترات الطلب
-        telegram_id = request.args.get("telegram_id")
-
+        telegram_id = int(request.args.get("telegram_id"))
+        logging.info(f"Received telegram_id: {telegram_id}, type: {type(telegram_id)}")
         # التحقق من وجود `telegram_id`
         if not telegram_id:
             logging.error("Missing 'telegram_id'")
             return jsonify({"error": "Missing 'telegram_id'"}), 400
 
-        # البحث عن المستخدم في قاعدة البيانات
-        async with app.app_context():
-            user_query = await db.session.execute(
-                db.select(User).filter_by(telegram_id=telegram_id)
+        async with app.db_pool.acquire() as connection:
+            # البحث عن المستخدم في قاعدة البيانات
+            user = await connection.fetchrow(
+                "SELECT * FROM users WHERE telegram_id = $1", telegram_id
             )
-            user = user_query.scalar()
 
-        # التحقق من وجود المستخدم
-        if not user:
-            logging.error(f"No user found with telegram_id: {telegram_id}")
-            return jsonify({"error": "User not found"}), 404
+            # التحقق من وجود المستخدم
+            if not user:
+                logging.error(f"No user found with telegram_id: {telegram_id}")
+                return jsonify({"error": "User not found"}), 404
 
-        # جلب جميع الاشتراكات للمستخدم
-        async with app.app_context():
-            subscriptions_query = await db.session.execute(
-                db.select(Subscription).filter_by(user_id=user.id)
+            # جلب جميع الاشتراكات للمستخدم
+            user_subscriptions = await connection.fetch(
+                "SELECT * FROM subscriptions WHERE user_id = $1", user['id']
             )
-            user_subscriptions = subscriptions_query.scalars().all()
 
-        # التحقق من وجود اشتراكات
-        if not user_subscriptions:
-            logging.info(f"No active subscriptions found for user_id: {user.id}")
-            return jsonify({"message": "No active subscriptions"}), 404
+            # التحقق من وجود اشتراكات
+            if not user_subscriptions:
+                logging.info(f"No active subscriptions found for user_id: {user['id']}")
+                return jsonify({"message": "No active subscriptions"}), 404
 
-        # تجهيز البيانات لإرجاعها
-        result = [
-            {
-                "subscription_type": sub.subscription_type,
-                "expiry_date": sub.expiry_date.strftime('%Y-%m-%d %H:%M:%S'),
-                "is_active": sub.is_active,
-            }
-            for sub in user_subscriptions
-        ]
+            # تجهيز البيانات لإرجاعها
+            result = [
+                {
+                    "subscription_type": sub['subscription_type'],
+                    "expiry_date": sub['expiry_date'].strftime('%Y-%m-%d %H:%M:%S'),
+                    "is_active": sub['is_active']
+                }
+                for sub in user_subscriptions
+            ]
 
         # إرجاع البيانات
-        logging.info(f"Subscriptions retrieved for user_id: {user.id}")
+        logging.info(f"Subscriptions retrieved for user_id: {user['id']}")
         return jsonify({"subscriptions": result}), 200
 
-    except Exception as data_error:
+    except Exception as e:
         # معالجة أي أخطاء غير متوقعة
-        logging.error(f"Unexpected error: {data_error}")
+        logging.error(f"Error in check_subscription: {str(e)}")
         return jsonify({"error": "An unexpected error occurred"}), 500
 
 
 
 @app.route("/", endpoint="index")
-def home():
-    return render_template("index.html")
+async def home():
+    return await render_template("index.html")
 
 @app.route("/shop", endpoint="shop")
-def shop():
-    return render_template("shop.html", subscriptions=subscriptions)
+async def shop():
+    return await render_template("shop.html", subscriptions=subscriptions)
 
 @app.route('/api/verify', methods=['POST'])
 async def verify_user():
@@ -305,7 +305,7 @@ async def verify_user():
         logging.info(f"Verified Telegram ID: {telegram_id}, Username: {username}, IP: {client_ip}")
 
         # إرسال الاستجابة الناجحة
-        return jsonify({
+        return await jsonify({
             "success": True,
             "message": "Telegram ID verified successfully!",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -318,12 +318,12 @@ async def verify_user():
     except Exception as app_error:
         # تسجيل أي أخطاء غير متوقعة
         logging.error(f"Unexpected error in /api/verify: {app_error}")
-        return jsonify({
+        return await jsonify({
             "success": False,
             "message": "An unexpected error occurred!"
         }), 500
 @app.route("/profile", endpoint="profile")
-def profile():
+async def profile():
     user = {
         "name": "محمد أحمد",
         "profile_image": "assets/img/user-placeholder.jpg",
@@ -340,27 +340,14 @@ def profile():
             }
         ]
     }
-    return render_template("profile.html", user=user)
+    return await render_template("profile.html", user=user)
 
 
 # نقطة نهاية اختبارية
-# إعداد نقطة اختبارية
 @app.route("/")
 async def home():
     return "Hello, Quart!"
 
-# وظيفة إعداد الجداول
-async def setup_app():
-    try:
-        async with app.app_context():
-            async with db.engine.begin() as conn:
-                await conn.run_sync(db.metadata.create_all)
-            print("Database setup completed successfully.")
-    except Exception as e:
-        print(f"Error during database setup: {e}")
-        raise
-
 # تشغيل التطبيق
 if __name__ == "__main__":
-    asyncio.run(setup_app())
     app.run(debug=True, host="0.0.0.0", port=5000)
