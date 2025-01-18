@@ -1,21 +1,21 @@
 import asyncio
-from db_queries import create_db_pool, add_user, get_user
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import asyncpg
+from config import DATABASE_CONFIG
+from scheduler import start_scheduler
 
-async def test_queries():
+
+
+async def main():
     # إنشاء اتصال بقاعدة البيانات
-    db_pool = await create_db_pool()
+    connection = await asyncpg.connect(**DATABASE_CONFIG)
 
-    async with db_pool.acquire() as connection:
-        # إضافة مستخدم جديد
-        print("Adding user...")
-        await add_user(connection, 12345678, username="john_doe", full_name="John Doe")
+    # استدعِ start_scheduler لتشغيل الجدولة
+    start_scheduler(connection)
 
-        # جلب بيانات المستخدم
-        print("Fetching user...")
-        user = await get_user(connection, 12345678)
-        print("User data:", user)
+    # أضف انتظارًا غير نهائي لتبقى الحلقة تعمل
+    await asyncio.Event().wait()
 
-# تشغيل الاختبار
+
 if __name__ == "__main__":
-    asyncio.run(test_queries())
-
+    asyncio.run(main())

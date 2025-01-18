@@ -1,4 +1,4 @@
-from db_queries import add_user, add_scheduled_task
+from db_queries import add_user, get_user, add_scheduled_task, update_subscription
 from aiogram import Bot
 import asyncio
 
@@ -26,11 +26,12 @@ DEFAULT_REMINDER_SETTINGS = {
 }
 
 # وظيفة لإضافة المستخدم إلى القناة
-# وظيفة لإضافة المستخدم إلى القناة
 async def add_user_to_channel(user_id: int, subscription_type: str = None, channel_id: int = None):
     """
     إرسال رابط دعوة إلى المستخدم ليقوم بالانضمام إلى القناة بنفسه.
     """
+
+    # إذا لم يتم تحديد قناة، استخدم القناة الافتراضية
     if not channel_id:
         channel_id = DEFAULT_CHANNEL_ID
 
@@ -42,14 +43,14 @@ async def add_user_to_channel(user_id: int, subscription_type: str = None, chann
         except TelegramAPIError as unban_error:
             logging.warning(f"لم يتمكن من إزالة الحظر عن المستخدم {user_id} في القناة {channel_id}: {unban_error}")
 
-        # الحصول على اسم القناة من القاموس أو استخدام طريقة get_chat
-        channel_name = "القناة"  # أو استخدام طريقة معينة لاستخراج الاسم
+        # الحصول على اسم القناة (يمكن التعديل هنا لتحديد الاسم تلقائيًا)
+        channel_name = "القناة"  # يمكن تحديث هذا الجزء لجلب الاسم تلقائيًا
 
-        # إنشاء رابط دعوة
+        # إنشاء رابط دعوة مخصص لمستخدم واحد
         invite_link = await telegram_bot.create_chat_invite_link(
             chat_id=channel_id,
             member_limit=1,
-            expire_date=None
+            expire_date=None  # الرابط بدون تاريخ انتهاء
         )
 
         # إرسال رابط الدعوة عبر دردشة البوت
@@ -62,86 +63,137 @@ async def add_user_to_channel(user_id: int, subscription_type: str = None, chann
 
     except TelegramAPIError as invite_error:
         logging.error(
-            f"خطأ أثناء إنشاء أو إرسال رابط الدعوة للمستخدم {user_id} إلى القناة {channel_id}: {invite_error}")
+            f"خطأ أثناء إنشاء أو إرسال رابط الدعوة للمستخدم {user_id} إلى القناة {channel_id}: {invite_error}"
+        )
         return False
     except Exception as e:
         logging.error(f"خطأ غير متوقع أثناء إرسال رابط الدعوة للمستخدم {user_id} إلى القناة {channel_id}: {e}")
         return False
 
 # وظيفة جدولة التذكيرات
-async def schedule_reminders(connection, user_id: int, subscription_type: str, expiry_date: datetime, reminder_settings=None):
+async def schedule_reminders(connection, user_id: int, expiry_date: datetime, reminder_settings=None):
     """
-    تقوم بجدولة تذكيرين للمستخدم قبل انتهاء اشتراكه.
-    يمكن تخصيص أوقات التذكيرات عبر reminder_settings.
+    جدولة التذكيرات بناءً على تاريخ انتهاء الاشتراك.
     """
     try:
-        # استخدام الإعدادات الافتراضية أو المخصصة
-        settings = reminder_settings if reminder_settings else {
-            "first_reminder": 72,  # عدد الساعات قبل انتهاء الاشتراك
-            "second_reminder": 24  # عدد الساعات قبل انتهاء الاشتراك
+        # إعدادات التذكير الافتراضية للتطوير والاختبار
+        settings = reminder_settings or {
+            "first_reminder": 2,  # أول تذكير قبل دقيقتين
+            "second_reminder": 1  # ثاني تذكير قبل دقيقة
         }
 
         # التأكد من أن expiry_date هو كائن datetime
         if isinstance(expiry_date, str):
-            logging.info(f"Parsing expiry_date from string: {expiry_date}")
             expiry_date = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
-            logging.info(f"Expiry date after parsing (datetime object): {expiry_date}")
+        logging.info(f"expiry_date is {expiry_date}, type: {type(expiry_date)}")
 
-        # حساب أوقات التذكيرات
-        first_reminder_time = expiry_date - timedelta(hours=settings["first_reminder"])
-        second_reminder_time = expiry_date - timedelta(hours=settings["second_reminder"])
+        # حذف جميع التذكيرات القديمة للمستخدم
+        deleted_count = await connection.execute("""
+            DELETE FROM scheduled_tasks
+            WHERE user_id = $1 AND task_type IN ('first_reminder', 'second_reminder')
+        """, user_id)
+        logging.info(f"Deleted old reminder tasks for user_id: {user_id}, count: {deleted_count}")
 
-        # استخدام استعلامات db_queries لإضافة المهام إلى قاعدة البيانات
-        await add_scheduled_task(connection, "first_reminder", user_id, first_reminder_time)
-        logging.info(f"First reminder scheduled for user {user_id} at {first_reminder_time}")
+        # حساب الأوقات الجديدة للتذكيرات
+        first_reminder_time = expiry_date - timedelta(minutes=settings["first_reminder"])
+        second_reminder_time = expiry_date - timedelta(minutes=settings["second_reminder"])
 
-        await add_scheduled_task(connection, "second_reminder", user_id, second_reminder_time)
-        logging.info(f"Second reminder scheduled for user {user_id} at {second_reminder_time}")
+        # إضافة المهام الجديدة إلى قاعدة البيانات
+        first_task_result = await add_scheduled_task(connection, "first_reminder", user_id, first_reminder_time)
+        logging.info(f"Added first reminder task for user_id: {user_id}, result: {first_task_result}")
 
-        logging.info(f"تم جدولة التذكيرات للمستخدم {user_id}.")
+        second_task_result = await add_scheduled_task(connection, "second_reminder", user_id, second_reminder_time)
+        logging.info(f"Added second reminder task for user_id: {user_id}, result: {second_task_result}")
+
+        # حذف التذكيرات القديمة التي انتهت صلاحيتها منذ أكثر من 48 ساعة
+        cleaned_count = await connection.execute("""
+            DELETE FROM scheduled_tasks
+            WHERE status = 'completed' AND execute_at <= NOW() - INTERVAL '48 HOURS'
+        """)
+        logging.info(f"Cleaned up completed tasks older than 48 hours, count: {cleaned_count}")
+
+        logging.info(f"Finished scheduling reminders for user_id: {user_id}.")
     except Exception as e:
-        logging.error(f"خطأ أثناء جدولة التذكيرات: {e}")
+        logging.error(f"Error in schedule_reminders for user_id: {user_id}: {e}")
 
 
 # وظيفة جدولة إزالة المستخدم
 async def schedule_remove_user(connection, user_id: int, expiry_date: datetime):
-    """
-    جدولة إزالة المستخدم من القناة بعد انتهاء اشتراكه مباشرة.
-    """
     try:
-        # التأكد من أن expiry_date هو كائن datetime
-        if isinstance(expiry_date, str):
-            logging.info(f"Parsing expiry_date from string: {expiry_date}")
-            expiry_date = datetime.strptime(expiry_date, "%Y-%m-%d %H:%M:%S")
-            logging.info(f"Expiry date after parsing (datetime object): {expiry_date}")
+        # حذف أي مهام إزالة قديمة قبل إضافة المهمة الجديدة
+        await connection.execute("""
+            DELETE FROM scheduled_tasks
+            WHERE user_id = $1 AND task_type = 'remove_user';
+        """, user_id)
 
-        # حساب وقت الإزالة
+        # حساب وقت الإزالة الجديد
         remove_time = expiry_date + timedelta(seconds=1)
-        logging.info(f"Calculated remove_time as {remove_time}.")
 
-        # استخدام db_queries لإضافة المهمة إلى قاعدة البيانات
+        # إضافة المهمة الجديدة إلى قاعدة البيانات
         await add_scheduled_task(connection, "remove_user", user_id, remove_time)
-        logging.info(f"User removal scheduled at {remove_time} for user {user_id}.")
+
+        # حذف التذكيرات القديمة التي انتهت صلاحيتها منذ أكثر من 48 ساعة
+        await connection.execute("""
+            DELETE FROM scheduled_tasks
+            WHERE status = 'completed' AND execute_at <= NOW() - INTERVAL '48 HOURS';
+        """)
+
+        logging.info(f"تم جدولة إزالة المستخدم {user_id} بعد انتهاء الاشتراك.")
     except Exception as e:
-        logging.error(f"Error scheduling user removal: {e}")
+        logging.error(f"خطأ أثناء جدولة إزالة المستخدم {user_id}: {e}")
+
+
 # وظيفة لإزالة المستخدم من القناة باستخدام Telegram Bot API
 async def remove_user_from_channel(user_id: int, channel_id: int = None):
-    """
-    إزالة المستخدم من القناة باستخدام aiogram.
-    """
     try:
-        # إذا لم يتم تمرير channel_id، نستخدم القناة الافتراضية
+        # استخدام DEFAULT_CHANNEL_ID إذا لم يتم تمرير channel_id
         if not channel_id:
             channel_id = DEFAULT_CHANNEL_ID
-            logging.info(f"No channel_id provided. Using default channel {DEFAULT_CHANNEL_ID}.")
+            logging.info(f"لم يتم تقديم channel_id. سيتم استخدام القناة الافتراضية: {DEFAULT_CHANNEL_ID}.")
 
-        # إزالة المستخدم من القناة
+        # محاولة إزالة المستخدم من القناة
         await telegram_bot.ban_chat_member(chat_id=channel_id, user_id=user_id)
-        logging.info(f"User {user_id} was removed from channel {channel_id}.")
+        logging.info(f"تمت إزالة المستخدم {user_id} من القناة {channel_id}.")
         return True
     except TelegramAPIError as e:
-        logging.error(f"Failed to remove user {user_id} from channel {channel_id}: {e}")
+        logging.error(f"فشل إزالة المستخدم {user_id} من القناة {channel_id}: {e}")
         return False
     except Exception as e:
-        logging.error(f"Unexpected error while removing user {user_id} from channel {channel_id}: {e}")
+        logging.error(f"خطأ غير متوقع أثناء إزالة المستخدم {user_id} من القناة {channel_id}: {e}")
         return False
+
+
+
+async def update_all_subscriptions(connection):
+    """
+    تحديث جميع الاشتراكات بناءً على تاريخ انتهاء الصلاحية.
+    يتم تعطيل الاشتراكات التي انتهت صلاحيتها.
+    """
+    try:
+        # جلب جميع الاشتراكات النشطة
+        subscriptions = await connection.fetch("""
+            SELECT id, user_id, expiry_date
+            FROM subscriptions
+            WHERE is_active = TRUE
+        """)
+        logging.info(f"Found {len(subscriptions)} active subscriptions to check.")
+
+        # الوقت الحالي
+        now = datetime.now()
+
+        # تعطيل الاشتراكات التي انتهت صلاحيتها
+        for subscription in subscriptions:
+            if subscription['expiry_date'] < now:
+                await connection.execute("""
+                    UPDATE subscriptions
+                    SET is_active = FALSE
+                    WHERE id = $1
+                """, subscription['id'])
+                logging.info(f"Subscription {subscription['id']} set to inactive.")
+
+        logging.info("Completed updating all subscriptions.")
+    except Exception as e:
+        logging.error(f"Error in update_all_subscriptions: {e}")
+
+
+
