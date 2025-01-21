@@ -3,6 +3,9 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import logging
 from config import TELEGRAM_BOT_TOKEN
 from telegram import Bot
+from aiogram import Bot
+from aiogram.types import Message
+from aiogram.exceptions import TelegramAPIError
 
 # إنشاء كائن البوت
 telegram_bot = Bot(token=TELEGRAM_BOT_TOKEN)
@@ -46,13 +49,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # وظيفة لإرسال رسالة عبر دردشة البوت
 async def send_message_to_user(user_id: int, message: str):
     """
-    إرسال رسالة مباشرة إلى مستخدم عبر دردشة البوت.
+    إرسال رسالة مباشرة إلى مستخدم عبر دردشة البوت باستخدام aiogram.
     """
     try:
+        # إرسال الرسالة
         await telegram_bot.send_message(chat_id=user_id, text=message)
         logging.info(f"تم إرسال الرسالة إلى المستخدم {user_id}: {message}")
+    except TelegramAPIError as e:
+        if "chat not found" in str(e).lower():
+            logging.error(f"Chat not found for user {user_id}. ربما قام المستخدم بحظر البوت أو لم يبدأ المحادثة.")
+        else:
+            logging.error(f"خطأ في Telegram API أثناء إرسال الرسالة إلى المستخدم {user_id}: {e}")
     except Exception as e:
-        logging.error(f"خطأ أثناء إرسال الرسالة إلى المستخدم {user_id}: {e}")
+        logging.error(f"خطأ غير متوقع أثناء إرسال الرسالة إلى المستخدم {user_id}: {e}")
+
 
 # إعداد التطبيق وتشغيله
 def main():

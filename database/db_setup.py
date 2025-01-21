@@ -21,7 +21,7 @@ def create_database():
             user_id INTEGER NOT NULL,
             subscription_type TEXT NOT NULL,
             expiry_date TEXT NOT NULL,
-            is_active BOOLEAN DEFAULT TRUE,
+            is_app.pyBOOLEAN DEFAULT TRUE,
             reminders_sent INTEGER DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )

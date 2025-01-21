@@ -313,7 +313,7 @@ window.subscribe = function (subscriptionType) {
 
     const subscriptionData = {
         telegram_id: telegramId,
-        subscription_type: subscriptionType,
+        subscription_type_id: subscriptionType,
     };
 
     console.log("البيانات المرسلة للاشتراك:", subscriptionData);

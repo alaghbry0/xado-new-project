@@ -1,21 +1,14 @@
 import asyncio
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import asyncpg
-from config import DATABASE_CONFIG
-from scheduler import start_scheduler
-
-
+from app import app,create_db_connection, close_resources
+from scheduler import execute_scheduled_tasks
 
 async def main():
-    # إنشاء اتصال بقاعدة البيانات
-    connection = await asyncpg.connect(**DATABASE_CONFIG)
-
-    # استدعِ start_scheduler لتشغيل الجدولة
-    start_scheduler(connection)
-
-    # أضف انتظارًا غير نهائي لتبقى الحلقة تعمل
-    await asyncio.Event().wait()
-
+    # قم بإنشاء اتصال بقاعدة البيانات
+    await create_db_connection()
+    # استدعي execute_scheduled_tasks مباشرة
+    await execute_scheduled_tasks(app.db_pool)
+    # أغلق اتصال قاعدة البيانات
+    await close_resources()
 
 if __name__ == "__main__":
     asyncio.run(main())

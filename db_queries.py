@@ -42,43 +42,54 @@ async def get_user(connection, telegram_id):
 
 
 # استعلامات إدارة الاشتراكات
-async def add_subscription(connection, user_id, subscription_type, expiry_date, is_active=True):
-    """إضافة اشتراك جديد."""
+async def add_subscription(connection, telegram_id: int, channel_id: int, subscription_type_id: int, expiry_date, is_active=True):
+    """
+    إضافة اشتراك جديد.
+    """
     try:
         await connection.execute("""
-            INSERT INTO subscriptions (user_id, subscription_type, expiry_date, is_active)
-            VALUES ($1, $2, $3, $4)
-        """, user_id, subscription_type, expiry_date, is_active)
-        logging.info(f"Subscription for user {user_id} with type {subscription_type} added. Expiry date: {expiry_date}.")
+            INSERT INTO subscriptions (telegram_id, channel_id, subscription_type_id, expiry_date, is_active)
+            VALUES ($1, $2, $3, $4, $5)
+        """, telegram_id, channel_id, subscription_type_id, expiry_date, is_active)
+        logging.info(f"تمت إضافة اشتراك جديد للمستخدم {telegram_id} في القناة {channel_id}. ينتهي في: {expiry_date}.")
         return True
     except Exception as e:
-        logging.error(f"Error adding subscription for user {user_id} with type {subscription_type}: {e}")
+        logging.error(f"خطأ أثناء إضافة اشتراك للمستخدم {telegram_id} في القناة {channel_id}: {e}")
         return False
 
 
-async def update_subscription(connection, subscription_id, subscription_type, new_expiry_date, is_active):
-    """تحديث الاشتراك بتمديد مدة الاشتراك وتحديث حالته."""
+
+
+
+async def update_subscription(connection, telegram_id: int, channel_id: int, subscription_type_id: int, new_expiry_date, is_active=True):
+    """
+    تحديث الاشتراك بتمديد مدة الاشتراك وتحديث حالته.
+    """
     try:
-        await connection.execute("""
+        query = """
             UPDATE subscriptions
-            SET expiry_date = $1, is_active = $2
-            WHERE id = $3 AND subscription_type = $4
-        """, new_expiry_date, is_active, subscription_id, subscription_type)
-        logging.info(f"Subscription {subscription_id} with type {subscription_type} updated: expiry_date={new_expiry_date}, is_active={is_active}.")
+            SET expiry_date = $1, is_active = $2, subscription_type_id = $3
+            WHERE telegram_id = $4 AND channel_id = $5
+        """
+        await connection.execute(query, new_expiry_date, is_active, subscription_type_id, telegram_id, channel_id)
+        logging.info(f"تم تحديث الاشتراك للمستخدم {telegram_id} في القناة {channel_id}: expiry_date={new_expiry_date}, is_active={is_active}.")
         return True
     except Exception as e:
-        logging.error(f"Error updating subscription {subscription_id} with type {subscription_type}: {e}")
+        logging.error(f"خطأ أثناء تحديث الاشتراك للمستخدم {telegram_id} في القناة {channel_id}: {e}")
         return False
 
 
 
-async def get_subscription(connection, user_id, subscription_type):
-    """جلب الاشتراك الحالي للمستخدم."""
+
+async def get_subscription(connection, telegram_id: int, channel_id: int):
+    """
+    جلب الاشتراك الحالي للمستخدم.
+    """
     try:
         subscription = await connection.fetchrow("""
             SELECT * FROM subscriptions
-            WHERE user_id = $1 AND subscription_type = $2
-        """, user_id, subscription_type)
+            WHERE telegram_id = $1 AND channel_id = $2
+        """, telegram_id, channel_id)
 
         # التحقق مما إذا كان الاشتراك قد انتهى
         if subscription and subscription['expiry_date'] < datetime.now():
@@ -88,110 +99,122 @@ async def get_subscription(connection, user_id, subscription_type):
                 WHERE id = $1
             """, subscription['id'])
             subscription = {**subscription, 'is_active': False}
+            logging.info(f"Subscription for user {telegram_id} in channel {channel_id} marked as inactive.")
 
         return subscription
     except Exception as e:
-        logging.error(f"Error retrieving subscription for user {user_id} with type {subscription_type}: {e}")
+        logging.error(f"Error retrieving subscription for user {telegram_id} in channel {channel_id}: {e}")
         return None
 
 
-async def deactivate_subscription(connection, user_id, subscription_type=None):
-    """تعطيل جميع الاشتراكات أو اشتراك معين للمستخدم."""
+async def deactivate_subscription(connection, telegram_id: int, channel_id: int = None):
+    """
+    تعطيل جميع الاشتراكات أو اشتراك معين للمستخدم.
+    """
     try:
-        if subscription_type:
+        if channel_id:
             await connection.execute("""
                 UPDATE subscriptions
                 SET is_active = FALSE
-                WHERE user_id = $1 AND subscription_type = $2
-            """, user_id, subscription_type)
-            logging.info(f"Subscription for user {user_id} with type {subscription_type} deactivated.")
+                WHERE telegram_id = $1 AND channel_id = $2
+            """, telegram_id, channel_id)
+            logging.info(f"Subscription for user {telegram_id} with channel {channel_id} deactivated.")
         else:
             await connection.execute("""
                 UPDATE subscriptions
                 SET is_active = FALSE
-                WHERE user_id = $1
-            """, user_id)
-            logging.info(f"All subscriptions for user {user_id} deactivated.")
+                WHERE telegram_id = $1
+            """, telegram_id)
+            logging.info(f"All subscriptions for user {telegram_id} deactivated.")
         return True
     except Exception as e:
-        logging.error(f"Error deactivating subscription(s) for user {user_id}: {e}")
+        logging.error(f"Error deactivating subscription(s) for user {telegram_id}: {e}")
         return False
+
 
 # استعلامات إدارة المهام المجدولة
-async def add_scheduled_task(connection, task_type, user_id, subscription_type, execute_at):
-    """إضافة مهمة مجدولة جديدة مرتبطة بنوع الاشتراك."""
+async def add_scheduled_task(connection, task_type, telegram_id, channel_id, execute_at, clean_up=True):
+    """
+    إضافة مهمة مجدولة جديدة مع دعم حذف المهام القديمة.
+    """
     try:
+        # إذا كان clean_up مفعلاً، حذف المهام القديمة
+        if clean_up:
+            await connection.execute("""
+                DELETE FROM scheduled_tasks
+                WHERE telegram_id = $1 AND channel_id = $2 AND task_type = $3
+            """, telegram_id, channel_id, task_type)
+
+        # إضافة المهمة الجديدة إلى جدول التذكيرات
         await connection.execute("""
-            INSERT INTO scheduled_tasks (task_type, user_id, subscription_type, execute_at, status)
+            INSERT INTO scheduled_tasks (task_type, telegram_id, channel_id, execute_at, status)
             VALUES ($1, $2, $3, $4, 'pending')
-        """, task_type, user_id, subscription_type, execute_at)
-        logging.info(f"Scheduled task '{task_type}' for user {user_id} and subscription type {subscription_type} at {execute_at}.")
+        """, task_type, telegram_id, channel_id, execute_at)
+
+        logging.info(
+            f"Scheduled task '{task_type}' for user {telegram_id} and channel {channel_id} at {execute_at}."
+        )
         return True
     except Exception as e:
-        logging.error(f"Error adding scheduled task '{task_type}' for user {user_id} and subscription type {subscription_type}: {e}")
+        logging.error(
+            f"Error adding scheduled task '{task_type}' for user {telegram_id} and channel {channel_id}: {e}"
+        )
         return False
 
-
-async def get_active_subscriptions(connection, user_id, subscription_type=None):
-    """جلب جميع الاشتراكات أو اشتراك محدد للمستخدم، مع تحديث is_active إذا لزم."""
+async def get_pending_tasks(connection, channel_id=None):
+    """
+    جلب المهام المعلقة التي يجب تنفيذها في الوقت الحالي.
+    """
     try:
-        if subscription_type:
-            subscriptions = await connection.fetch("""
-                SELECT * FROM subscriptions
-                WHERE user_id = $1 AND subscription_type = $2
-            """, user_id, subscription_type)
-        else:
-            subscriptions = await connection.fetch("""
-                SELECT * FROM subscriptions
-                WHERE user_id = $1
-            """, user_id)
+        logging.info("تنفيذ استعلام جلب المهام المعلقة.")
+        logging.info(f"الوقت الحالي على الخادم: {datetime.now()} (المنطقة الزمنية للخادم)")
+        logging.info("استعلام المهام المعلقة التي حالتها 'pending' وزمن تنفيذها <= الآن.")
 
-        # تحقق من تاريخ انتهاء كل اشتراك وقم بتحديث حالة is_active إذا انتهى
-        for subscription in subscriptions:
-            if subscription['expiry_date'] < datetime.now() and subscription['is_active']:
-                await connection.execute("""
-                    UPDATE subscriptions
-                    SET is_active = FALSE
-                    WHERE id = $1
-                """, subscription['id'])
-                subscription['is_active'] = False
+        # الاستعلام الأساسي
+        base_query = """
+            SELECT *
+            FROM scheduled_tasks
+            WHERE status = 'pending'
+              AND execute_at <= NOW()
+        """
+        parameters = []
 
-        return subscriptions
-    except Exception as e:
-        logging.error(f"Error fetching active subscriptions for user {user_id}: {e}")
-        return []
+        # إذا تم تحديد channel_id، إضافة شرط إضافي
+        if channel_id:
+            base_query += " AND channel_id = $1"
+            parameters.append(channel_id)
 
-async def get_pending_tasks(connection, subscription_type=None):
-    """جلب المهام المجدولة الجاهزة للتنفيذ، مع خيار تصفيتها بناءً على نوع الاشتراك."""
-    try:
-        if subscription_type:
-            tasks = await connection.fetch("""
-                SELECT * FROM scheduled_tasks
-                WHERE status = 'pending' AND execute_at <= NOW() AND subscription_type = $1
-            """, subscription_type)
-        else:
-            tasks = await connection.fetch("""
-                SELECT * FROM scheduled_tasks
-                WHERE status = 'pending' AND execute_at <= NOW()
-            """)
+        # تنفيذ الاستعلام
+        tasks = await connection.fetch(base_query, *parameters)
 
-        logging.info(f"Pending tasks retrieved: {len(tasks)} tasks found.")
+        # تسجيل النتائج
+        logging.info(f"تم جلب {len(tasks)} مهمة معلقة (channel_id: {channel_id}).")
+        for task in tasks:
+            logging.info(f"Task Details: {task}")
         return tasks
     except Exception as e:
-        logging.error(f"Error fetching pending tasks: {e}")
+        logging.error(f"خطأ أثناء استعلام المهام المعلقة (channel_id: {channel_id}): {e}")
         return []
 
 
 async def update_task_status(connection, task_id, status):
-    """تحديث حالة المهمة."""
+    """
+    تحديث حالة المهمة في جدول scheduled_tasks.
+    Args:
+        connection: اتصال قاعدة البيانات.
+        task_id: معرف المهمة التي سيتم تحديث حالتها.
+        status: الحالة الجديدة التي سيتم تعيينها للمهمة.
+    """
+    query = """
+        UPDATE scheduled_tasks
+        SET status = $1
+        WHERE id = $2
+    """
     try:
-        await connection.execute("""
-            UPDATE scheduled_tasks
-            SET status = $1
-            WHERE id = $2
-        """, status, task_id)
-        logging.info(f"Task {task_id} status updated to {status}.")
+        # تنفيذ التحديث
+        await connection.execute(query, status, task_id)
+        logging.info(f"تم تحديث حالة المهمة {task_id} إلى {status}.")
         return True
     except Exception as e:
-        logging.error(f"Error updating task status for task {task_id}: {e}")
+        logging.error(f"خطأ أثناء تحديث حالة المهمة {task_id}. الاستعلام: {query}, المعلمات: [status={status}, task_id={task_id}], الخطأ: {e}")
         return False
