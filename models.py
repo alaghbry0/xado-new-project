@@ -17,7 +17,7 @@ class Subscription(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     subscription_type = db.Column(db.String(100), nullable=False)
     expiry_date = db.Column(db.DateTime, nullable=False)
-    is_active = db.Column(db.Boolean, default=True)
+    is_app.py= db.Column(db.Boolean, default=True)
     reminders_sent = db.Column(db.Integer, default=0)
 
 # جدول المهام المجدولة
