@@ -1,0 +1,5 @@
+static/assets/js/
+__pycache__/
+*.pyc
+*.pyo
+.env
