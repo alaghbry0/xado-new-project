@@ -8,7 +8,7 @@ from telegram import Bot
 logging.basicConfig(level=logging.INFO)
 
 # رابط التطبيق المصغر
-WEB_APP_URL = "https://exaado-mini-app-c04ea61e41f4.herokuapp.com/"
+WEB_APP_URL = "https://xado.onrender.com/"
 
 # وظيفة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
