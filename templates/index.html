@@ -38,76 +38,77 @@
 <body class="body-scroll">
 
     <!-- Header -->
-    <header class="container-fluid header">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <button type="button" class="btn btn-link menu-btn">
-                    <i class="bi bi-list"></i>
-                </button>
-            </div>
-            <div class="col text-center">
-                <h1 class="m-0 text-primary">Exaado</h1>
-            </div>
-            <div class="col-auto">
-                <figure class="avatar avatar-36 rounded-circle">
-                    <img src="{{ url_for('static', filename='assets/img/user-placeholder.jpg') }}" alt="Profile">
-                </figure>
+<header class="container-fluid header">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <button type="button" class="btn btn-link menu-btn">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        <div class="text-center">
+            <div id="ton-connect-button"></div>
+        </div>
+        <div class="col text-center">
+            <h1 class="m-0 text-primary">Exaado</h1>
+        </div>
+        <div class="col-auto">
+            <figure class="avatar avatar-36 rounded-circle">
+                <img src="{{ url_for('static', filename='assets/img/user-placeholder.jpg') }}" alt="Profile">
+            </figure>
+        </div>
+    </div>
+</header>
+<!-- Header Ends -->
+
+<!-- Main Content -->
+<main class="h-100 has-footer">
+    <div class="main-container container text-center">
+        <!-- Logo -->
+        <div class="text-center my-4">
+            <!-- صورة اللوجو -->
+            <div id="logo-container">
+                <img src="{{ url_for('static', filename='assets/img/exaado-logo.png') }}" alt="Exaado Logo" class="logo">
             </div>
         </div>
-    </header>
-    <!-- Header Ends -->
+        <!-- النص الرئيسي -->
+        <div id="main-text">
+            <h2 class="welcome-text">مرحبًا بك في Exaado</h2>
+        </div>
 
-    <!-- Main Content -->
-    <main class="h-100 has-footer">
-        <div class="main-container container text-center">
-            <!-- Logo -->
-            <div class="text-center my-4">
-                <!-- صورة اللوجو -->
-                <div id="logo-container">
-                    <img src="{{ url_for('static', filename='assets/img/exaado-logo.png') }}" alt="Exaado Logo" class="logo">
-                </div>
-                    <div class="my-4">
+        <!-- النص الوصفي -->
+        <div id="sub-text">
+            <p class="description-text">قم بإدارة اشتراكاتك بكل سهولة!</p>
+        </div>
 
-
-                <!-- النص الرئيسي -->
-                <div id="main-text">
-                    <h2 class="welcome-text">مرحبًا بك في Exaado</h2>
-                </div>
-
-                <!-- النص الوصفي -->
-                <div id="sub-text">
-                    <p class="description-text">قم بإدارة اشتراكاتك بكل سهولة!</p>
-                </div>
-            </div>
-
-            <div class="features-section py-4">
-                <div class="row text-center">
-                    <!-- أيقونة "سهولة الاشتراك" -->
-                    <div class="col-4 feature-item">
-                        <div class="feature-box">
-                            <i class="fa-solid fa-check-circle fa-bounce text-primary" style="font-size: 2.5rem;"></i>
-                            <p class="text-muted small">سهولة الاشتراك</p>
-                        </div>
+        <!-- الميزات -->
+        <div class="features-section py-4">
+            <div class="row text-center">
+                <!-- أيقونة "سهولة الاشتراك" -->
+                <div class="col-4 feature-item">
+                    <div class="feature-box">
+                        <i class="fa-solid fa-check-circle fa-bounce text-primary" style="font-size: 2.5rem;"></i>
+                        <p class="text-muted small">سهولة الاشتراك</p>
                     </div>
-                    <!-- أيقونة "وسائل الدفع" -->
-                    <div class="col-4 feature-item">
-                        <div class="feature-box">
-                            <i class="fa-brands fa-bitcoin fa-spin text-primary" style="font-size: 2.5rem;"></i>
-                            <p class="text-muted small">الدفع بعملة TON</p>
-                        </div>
+                </div>
+                <!-- أيقونة "وسائل الدفع" -->
+                <div class="col-4 feature-item">
+                    <div class="feature-box">
+                        <i class="fa-brands fa-bitcoin fa-spin text-primary" style="font-size: 2.5rem;"></i>
+                        <p class="text-muted small">الدفع بعملة TON</p>
                     </div>
-                    <!-- أيقونة "الدعم الفني - روبوت ذكاء اصطناعي" -->
-                    <div class="col-4 feature-item">
-                        <div class="feature-box">
-                            <i class="fa-solid fa-robot fa-beat text-primary" style="font-size: 2.5rem;"></i>
-                            <p class="text-muted small">دعم فني ذكي</p>
-                        </div>
+                </div>
+                <!-- أيقونة "الدعم الفني - روبوت ذكاء اصطناعي" -->
+                <div class="col-4 feature-item">
+                    <div class="feature-box">
+                        <i class="fa-solid fa-robot fa-beat text-primary" style="font-size: 2.5rem;"></i>
+                        <p class="text-muted small">دعم فني ذكي</p>
                     </div>
                 </div>
             </div>
-        </div> <!-- تم إغلاق div -->
-    </main>
-    <!-- Main Content Ends -->
+        </div>
+    </div> <!-- إغلاق main-container -->
+</main>
+<!-- Main Content Ends -->
 
     <!-- Footer -->
     <footer class="footer">
