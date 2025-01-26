@@ -482,7 +482,6 @@ function hideLoading() {
     }
 }
 
-'use strict';
 
 document.addEventListener('DOMContentLoaded', async function () {
     console.log("DOM fully loaded and parsed.");
