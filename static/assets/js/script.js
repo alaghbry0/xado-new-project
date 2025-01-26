@@ -327,40 +327,45 @@ $(window).on('resize', function () {
 });
 
 // دالة الاشتراك
-window.subscribe = function (subscriptionTypeId) {
+window.subscribe = async function (subscriptionTypeId) {
     console.log("بدء عملية الاشتراك...");
 
-    // التأكد من وجود Telegram ID
-    if (!window.telegramId) {
-        console.error("Telegram ID غير متوفر.");
-        alert("❌ Telegram ID غير متوفر. يرجى تشغيل التطبيق من داخل Telegram.");
-        return;
+    try {
+        // التحقق من Telegram ID
+        if (!window.telegramId) {
+            console.warn("Telegram ID غير متوفر. محاولة الحصول عليه...");
+            const telegramId = await window.getTelegramId(); // استدعاء الدالة للحصول على Telegram ID
+            window.telegramId = telegramId; // تخزين Telegram ID في المتغير العام
+            console.log("Telegram ID تم تعيينه أثناء الاشتراك:", telegramId);
+        }
+
+        // إعداد بيانات الاشتراك
+        const subscriptionData = {
+            telegram_id: window.telegramId, // استخدام Telegram ID المخزن عالميًا
+            subscription_type_id: subscriptionTypeId, // استخدام id الخاص بـ subscription_types
+        };
+
+        console.log("البيانات المرسلة للاشتراك:", subscriptionData);
+
+        // إرسال بيانات الاشتراك إلى API
+        window.performAjaxRequest({
+            url: "https://xado-new-project.onrender.com/api/subscribe", // رابط API
+            method: "POST",
+            data: subscriptionData,
+            onSuccess: (response) => {
+                console.log("تم الاشتراك بنجاح:", response);
+                alert(`🎉 ${response.message}`); // عرض رسالة نجاح
+            },
+            onError: (error) => {
+                console.error("خطأ أثناء عملية الاشتراك:", error);
+                alert("❌ حدث خطأ أثناء الاشتراك. يرجى المحاولة لاحقًا.");
+            },
+        });
+    } catch (error) {
+        console.error("حدث خطأ أثناء الاشتراك:", error);
+        alert("❌ حدث خطأ أثناء الاشتراك. يرجى التأكد من تشغيل التطبيق من داخل Telegram.");
     }
-
-    // إعداد بيانات الاشتراك
-    const subscriptionData = {
-        telegram_id: window.telegramId, // استخدام Telegram ID المخزن عالميًا
-        subscription_type_id: subscriptionTypeId, // استخدام id الخاص بـ subscription_types
-    };
-
-    console.log("البيانات المرسلة للاشتراك:", subscriptionData);
-
-    // إرسال بيانات الاشتراك إلى API
-    window.performAjaxRequest({
-        url: "https://xado-new-project.onrender.com/api/subscribe", // رابط API
-        method: "POST", // طريقة الطلب
-        data: subscriptionData, // بيانات الاشتراك
-        onSuccess: (response) => {
-            console.log("تم الاشتراك بنجاح:", response);
-            alert(`🎉 ${response.message}`); // عرض رسالة نجاح
-        },
-        onError: (error) => {
-            console.error("خطأ أثناء عملية الاشتراك:", error);
-            alert("❌ حدث خطأ أثناء الاشتراك. يرجى المحاولة لاحقًا.");
-        },
-    });
 };
-
 
 // دالة التحقق من الاشتراك
 window.checkSubscription = function (telegramId) {
