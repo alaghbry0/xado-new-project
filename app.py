@@ -1,7 +1,7 @@
 import asyncpg
 import asyncio
 from config import DATABASE_CONFIG, TELEGRAM_BOT_TOKEN
-from quart import Quart, request, jsonify, render_template
+from quart import Quart, request, jsonify, render_template, Response
 import logging
 from scheduler import start_scheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -11,12 +11,38 @@ from aiogram.exceptions import TelegramAPIError
 from datetime import datetime, timezone, timedelta
 from db_queries import add_user, get_user, add_subscription, update_subscription, get_subscription, add_scheduled_task
 from database.db_utils import add_user_to_channel, close_telegram_bot_session
+from Crypto.Signature import pkcs1_15
+from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
 
 telegram_bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # إنشاء التطبيق
-app = Quart(__name__)
-app = cors(app)  # تمكين CORS لجميع الطلبات
+app = Quart(__name__, static_folder="static")
+app = cors(app, allow_origin="*")  # تمكين CORS لجميع الطلبات
+
+# تحميل المفتاح الخاص من متغير البيئة
+private_key_content = os.environ.get("PRIVATE_KEY")
+
+# التحقق من وجود المفتاح في البيئة
+if not private_key_content:
+    raise ValueError("PRIVATE_KEY environment variable is not set.")
+
+# استيراد المفتاح الخاص
+private_key = RSA.import_key(private_key_content)
+
+# الرسالة التي تريد توقيعها
+message = b"transaction data"
+hash_msg = SHA256.new(message)
+
+# توقيع الرسالة باستخدام المفتاح الخاص
+signature = pkcs1_15.new(private_key).sign(hash_msg)
+
+# طباعة التوقيع
+print("Signed message:", signature.hex())
+print(os.environ.get("PRIVATE_KEY"))
+
+
 
 async def setup_scheduler():
     logging.info("Calling start_scheduler from app.py")
@@ -56,6 +82,7 @@ async def close_resources():
 
 # إعداد تسجيل الأخطاء والمعلومات
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 
 # بيانات الاشتراكات الوهمية
@@ -322,6 +349,73 @@ async def check_subscription():
         # معالجة أي أخطاء غير متوقعة
         logging.error(f"Error in check_subscription: {str(e)}")
         return jsonify({"error": "An unexpected error occurred"}), 500
+
+
+@app.route("/tonconnect-manifest.json", methods=["GET", "OPTIONS"])
+async def serve_manifest():
+    """
+    خدمة ملف tonconnect-manifest.json مع تعطيل التخزين المؤقت ودعم CORS.
+    """
+    response = await app.send_static_file("tonconnect-manifest.json")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
+
+
+@app.route("/api/link-wallet", methods=["POST"])
+async def link_wallet():
+    try:
+        # استلام البيانات من الطلب
+        data = await request.get_json()
+        telegram_id = int(data.get("telegram_id"))  # تحويل إلى رقم صحيح
+        wallet_address = data.get("wallet_address")
+
+        # إذا كان wallet_address كائنًا، استخراج العنوان النصي فقط
+        if isinstance(wallet_address, dict) and "address" in wallet_address:
+            wallet_address = wallet_address["address"]
+
+        username = data.get("username")  # يمكن إرسال اسم المستخدم من العميل
+        full_name = data.get("full_name")  # يمكن إرسال الاسم الكامل من العميل
+
+        # التحقق من صحة البيانات
+        if not telegram_id or not wallet_address:
+            return jsonify({"error": "Missing telegram_id or wallet_address"}), 400
+
+        async with app.db_pool.acquire() as connection:
+            # التحقق مما إذا كان المستخدم موجودًا
+            user = await get_user(connection, telegram_id)
+            if user:
+                # إذا كان المستخدم موجودًا، قم بتحديث عنوان المحفظة
+                query = """
+                UPDATE users
+                SET wallet_address = $1
+                WHERE telegram_id = $2
+                """
+                await connection.execute(query, wallet_address, telegram_id)
+                logging.info(f"Updated wallet address for user {telegram_id}.")
+            else:
+                # إذا كان المستخدم غير موجود، قم بإضافته
+                await add_user(connection, telegram_id, username=username, full_name=full_name)
+                # ثم قم بتحديث عنوان المحفظة
+                query = """
+                UPDATE users
+                SET wallet_address = $1
+                WHERE telegram_id = $2
+                """
+                await connection.execute(query, wallet_address, telegram_id)
+                logging.info(f"Added user {telegram_id} and set wallet address.")
+
+        return jsonify({"message": "Wallet address linked successfully!"}), 200
+
+    except ValueError as ve:
+        logging.error(f"Invalid input data: {ve}")
+        return jsonify({"error": "Invalid input data"}), 400
+    except Exception as e:
+        logging.error(f"Error linking wallet: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
 
 
 @app.route("/", endpoint="index")

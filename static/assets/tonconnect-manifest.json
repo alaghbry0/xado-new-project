@@ -1,0 +1,13 @@
+{
+  "name": "Exaado Telegram Web App",
+  "url": "https://xado.onrender.com",
+  "icon": "https://xado.onrender.com/static/assets/img/logoo.png",
+  "dappMetadata": {
+    "name": "Exaado Telegram Web App",
+    "description": "A web application for managing subscriptions and TON wallet connections."
+  },
+  "supportedWallets": [
+    "https://tonkeeper.com",
+    "https://wallet.ton.org"
+  ]
+}

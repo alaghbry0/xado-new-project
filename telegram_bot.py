@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 
 # رابط التطبيق المصغر
-WEB_APP_URL = "https://xado.onrender.com/"
+WEB_APP_URL = "https://xado-new-project.onrender.com/"
 
 # وظيفة /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
