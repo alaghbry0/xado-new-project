@@ -3,6 +3,7 @@ import asyncio
 from config import DATABASE_CONFIG, TELEGRAM_BOT_TOKEN
 from quart import Quart, request, jsonify, render_template, Response
 import logging
+import os
 from scheduler import start_scheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from quart_cors import cors
