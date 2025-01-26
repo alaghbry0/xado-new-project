@@ -368,14 +368,9 @@ async def check_subscription():
 @app.route("/tonconnect-manifest.json", methods=["GET", "OPTIONS"])
 async def serve_manifest():
     """
-    خدمة ملف tonconnect-manifest.json مع تعطيل التخزين المؤقت ودعم CORS.
+    خدمة ملف tonconnect-manifest.json مع دعم CORS.
     """
-    response = await app.send_static_file("tonconnect-manifest.json")
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    return response
+    return await app.send_static_file("tonconnect-manifest.json")
 
 
 @app.route("/api/link-wallet", methods=["POST"])
