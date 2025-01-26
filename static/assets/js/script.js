@@ -87,7 +87,6 @@ window.initializeTelegramWebApp = function () {
     }
 };
 
-
 // تحديث واجهة المستخدم
 window.updateUserUI = function (fullName, username) {
     try {
@@ -328,21 +327,14 @@ $(window).on('resize', function () {
 });
 
 // دالة الاشتراك
-window.subscribe = async function (subscriptionTypeId) {
+window.subscribe = function (subscriptionTypeId) {
     console.log("بدء عملية الاشتراك...");
 
-    // التحقق من Telegram ID
+    // التأكد من وجود Telegram ID
     if (!window.telegramId) {
-        console.warn("Telegram ID غير متوفر. محاولة الحصول عليه...");
-        try {
-            const telegramId = await window.getTelegramId(); // استدعاء الدالة للحصول على Telegram ID
-            window.telegramId = telegramId;
-            console.log("Telegram ID تم تعيينه أثناء الاشتراك:", telegramId);
-        } catch (error) {
-            console.error("حدث خطأ أثناء الحصول على Telegram ID:", error);
-            alert("❌ Telegram ID غير متوفر. يرجى المحاولة لاحقًا.");
-            return;
-        }
+        console.error("Telegram ID غير متوفر.");
+        alert("❌ Telegram ID غير متوفر. يرجى تشغيل التطبيق من داخل Telegram.");
+        return;
     }
 
     // إعداد بيانات الاشتراك
@@ -356,8 +348,8 @@ window.subscribe = async function (subscriptionTypeId) {
     // إرسال بيانات الاشتراك إلى API
     window.performAjaxRequest({
         url: "https://xado-new-project.onrender.com/api/subscribe", // رابط API
-        method: "POST",
-        data: subscriptionData,
+        method: "POST", // طريقة الطلب
+        data: subscriptionData, // بيانات الاشتراك
         onSuccess: (response) => {
             console.log("تم الاشتراك بنجاح:", response);
             alert(`🎉 ${response.message}`); // عرض رسالة نجاح
@@ -508,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         return;
     }
 
-   // التحقق من Telegram ID
+    // التحقق من Telegram ID
     if (!window.telegramId) {
         try {
             const telegramId = await window.getTelegramId(); // استخدام الدالة المضافة في الكود الأساسي
@@ -523,25 +515,14 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.log("Telegram ID متوفر:", window.telegramId);
     }
 
-  // تحميل manifest يدويًا باستخدام fetch
-    try {
-        const response = await fetch('https://xado-new-project.onrender.com/tonconnect-manifest.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+    // تهيئة TonConnectUI باستخدام manifestUrl
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://xado-new-project.onrender.com/tonconnect-manifest.json', // استخدام ملف manifest المرفوع
+        buttonRootId: 'ton-connect-button', // ID عنصر HTML لزر ربط المحفظة
+        uiOptions: {
+            twaReturnUrl: 'https://t.me/Te20s25tbot' // رابط العودة لتطبيق Telegram
         }
-        const manifestData = await response.json();
-        console.log('Manifest loaded successfully:', manifestData);
-
-        // تهيئة TonConnectUI باستخدام البيانات المحملة
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifest: manifestData, // تمرير البيانات المحملة مباشرة
-            buttonRootId: 'ton-connect-button', // ID عنصر HTML لزر ربط المحفظة
-            uiOptions: {
-                twaReturnUrl: 'https://t.me/Te20s25tbot' // رابط العودة لتطبيق Telegram
-            }
-        });
-
-        console.log("Ton Connect UI initialized successfully.");
+    });
 
     // التعامل مع استجابة ربط المحفظة
     tonConnectUI.onStatusChange((wallet) => {
