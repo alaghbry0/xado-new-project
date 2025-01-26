@@ -367,6 +367,7 @@ window.subscribe = async function (subscriptionTypeId) {
     }
 };
 
+
 // دالة التحقق من الاشتراك
 window.checkSubscription = function (telegramId) {
     if (!telegramId) {
