@@ -87,20 +87,6 @@ window.initializeTelegramWebApp = function () {
     }
 };
 
-   // التحقق من Telegram ID
-    if (!window.telegramId) {
-        try {
-            const telegramId = await window.getTelegramId(); // استخدام الدالة المضافة في الكود الأساسي
-            window.telegramId = telegramId;
-            console.log("Telegram ID تم تعيينه:", telegramId);
-        } catch (error) {
-            console.error(error);
-            alert("❌ " + error);
-            return;
-        }
-    } else {
-        console.log("Telegram ID متوفر:", window.telegramId);
-    }
 
 // تحديث واجهة المستخدم
 window.updateUserUI = function (fullName, username) {
@@ -512,6 +498,20 @@ document.addEventListener('DOMContentLoaded', async function () {
         return;
     }
 
+   // التحقق من Telegram ID
+    if (!window.telegramId) {
+        try {
+            const telegramId = await window.getTelegramId(); // استخدام الدالة المضافة في الكود الأساسي
+            window.telegramId = telegramId;
+            console.log("Telegram ID تم تعيينه:", telegramId);
+        } catch (error) {
+            console.error(error);
+            alert("❌ " + error);
+            return;
+        }
+    } else {
+        console.log("Telegram ID متوفر:", window.telegramId);
+    }
 
     // تهيئة TonConnectUI باستخدام manifestUrl
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
