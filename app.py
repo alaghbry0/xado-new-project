@@ -116,6 +116,8 @@ async def subscribe():
         data = await request.get_json()
         telegram_id = int(data.get("telegram_id"))
         subscription_type_id = int(data.get("subscription_type_id"))
+        username = data.get("username", None)  # اسم المستخدم (اختياري)
+        full_name = data.get("full_name", None)  # الاسم الكامل (اختياري)
         logging.info(f"Received telegram_id: {telegram_id}, subscription_type_id: {subscription_type_id}")
 
         # التحقق من صحة البيانات المدخلة
@@ -125,6 +127,17 @@ async def subscribe():
             return jsonify({"error": error_message}), 400
 
         async with app.db_pool.acquire() as connection:
+            # التحقق من وجود المستخدم في جدول users
+            user = await get_user(connection, telegram_id)
+            if not user:
+                # إذا لم يكن المستخدم موجودًا، يتم إضافته
+                added = await add_user(connection, telegram_id, username=username, full_name=full_name)
+                if not added:
+                    logging.error(f"Failed to add user {telegram_id} to the users table.")
+                    return jsonify({"error": "Failed to register the user."}), 500
+            else:
+                # تحديث بيانات المستخدم إذا كان موجودًا
+                await add_user(connection, telegram_id, username=username, full_name=full_name)
             # جلب تفاصيل الاشتراك من جدول subscription_types
             subscription_type = await connection.fetchrow(
                 "SELECT id, name, channel_id FROM subscription_types WHERE id = $1", subscription_type_id
