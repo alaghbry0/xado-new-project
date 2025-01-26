@@ -87,6 +87,21 @@ window.initializeTelegramWebApp = function () {
     }
 };
 
+   // التحقق من Telegram ID
+    if (!window.telegramId) {
+        try {
+            const telegramId = await window.getTelegramId(); // استخدام الدالة المضافة في الكود الأساسي
+            window.telegramId = telegramId;
+            console.log("Telegram ID تم تعيينه:", telegramId);
+        } catch (error) {
+            console.error(error);
+            alert("❌ " + error);
+            return;
+        }
+    } else {
+        console.log("Telegram ID متوفر:", window.telegramId);
+    }
+
 // تحديث واجهة المستخدم
 window.updateUserUI = function (fullName, username) {
     try {
@@ -330,14 +345,12 @@ $(window).on('resize', function () {
 window.subscribe = function (subscriptionTypeId) {
     console.log("بدء عملية الاشتراك...");
 
-    // التأكد من وجود Telegram ID
     if (!window.telegramId) {
-        console.error("Telegram ID غير متوفر.");
+        console.error("Telegram ID غير متوفر. يرجى المحاولة مرة أخرى لاحقًا.");
         alert("❌ Telegram ID غير متوفر. يرجى تشغيل التطبيق من داخل Telegram.");
         return;
     }
 
-    // إعداد بيانات الاشتراك
     const subscriptionData = {
         telegram_id: window.telegramId, // استخدام Telegram ID المخزن عالميًا
         subscription_type_id: subscriptionTypeId, // استخدام id الخاص بـ subscription_types
@@ -345,14 +358,13 @@ window.subscribe = function (subscriptionTypeId) {
 
     console.log("البيانات المرسلة للاشتراك:", subscriptionData);
 
-    // إرسال بيانات الاشتراك إلى API
     window.performAjaxRequest({
         url: "https://xado-new-project.onrender.com/api/subscribe", // رابط API
-        method: "POST", // طريقة الطلب
-        data: subscriptionData, // بيانات الاشتراك
+        method: "POST",
+        data: subscriptionData,
         onSuccess: (response) => {
             console.log("تم الاشتراك بنجاح:", response);
-            alert(`🎉 ${response.message}`); // عرض رسالة نجاح
+            alert(`🎉 ${response.message}`);
         },
         onError: (error) => {
             console.error("خطأ أثناء عملية الاشتراك:", error);
@@ -500,20 +512,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         return;
     }
 
-    // التحقق من Telegram ID
-    if (!window.telegramId) {
-        try {
-            const telegramId = await window.getTelegramId(); // استخدام الدالة المضافة في الكود الأساسي
-            window.telegramId = telegramId;
-            console.log("Telegram ID تم تعيينه:", telegramId);
-        } catch (error) {
-            console.error(error);
-            alert("❌ " + error);
-            return;
-        }
-    } else {
-        console.log("Telegram ID متوفر:", window.telegramId);
-    }
 
     // تهيئة TonConnectUI باستخدام manifestUrl
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
