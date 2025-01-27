@@ -44,37 +44,37 @@
     <!-- Header Ends -->
 
 
-    <!-- Main Content -->
+   <!-- Main Content -->
     <main class="h-100 has-footer">
         <div id="loader" style="display:none; text-align:center;">
-         <p>جاري معالجة طلبك...</p>
-         </div>
+            <p>جاري معالجة طلبك...</p>
+        </div>
 
         <div class="main-container container text-center">
-           <div class="row">
-    {% for plan in subscriptions %}
-    <div class="col-12 col-md-6 mb-4">
-        <div class="card shadow-sm plan-card">
-            <img src="{{ url_for('static', filename=plan.image_url) }}" class="card-img-top plan-image" alt="{{ plan.name }}">
+            <div class="row">
+                {% for plan in subscriptions %}
+                <div class="col-12 col-md-6 mb-4">
+                    <div class="card shadow-sm plan-card">
+                        <!-- عرض الصورة -->
+                        <img src="{{ url_for('static', filename=plan.image_url) }}" class="card-img-top plan-image" alt="{{ plan.name }}">
 
-            <div class="card-body">
-                <h5 class="card-title">{{ name | e }}</h5>
-                <p class="card-text text-muted">{{ plan.details | e }}</p>
-
-                <h4 class="text-primary mb-3">${{ price }}</h4>
-                <div class="d-flex flex-wrap justify-content-center">
-                    <button class="btn btn-primary mx-2 my-1 subscribe-btn" data-subscription="{{ plan.name | e }}">USDT (TON)</button>
-
-                    <button class="btn btn-primary mx-2 my-1 subscribe-btn" data-subscription="{{ plan.name | e }}">Telegram Stars</button>
-
+                        <div class="card-body">
+                            <!-- اسم الخطة -->
+                            <h5 class="card-title">{{ plan.name | safe }}</h5>
+                            <!-- تفاصيل الخطة -->
+                            <p class="card-text text-muted">{{ plan.details | safe }}</p>
+                            <!-- السعر -->
+                            <h4 class="text-primary mb-3">${{ plan.price }}</h4>
+                            <!-- الأزرار -->
+                            <div class="d-flex flex-wrap justify-content-center">
+                                <button class="btn btn-primary mx-2 my-1 subscribe-btn" data-subscription="{{ plan.id }}">USDT (TON)</button>
+                                <button class="btn btn-primary mx-2 my-1 subscribe-btn" data-subscription="{{ plan.id }}">Telegram Stars</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-
-
         </div>
     </main>
     <!-- Main Content Ends -->
