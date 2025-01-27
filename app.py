@@ -98,6 +98,7 @@ async def subscribe():
         subscription_type_id = int(data.get("subscription_type_id"))
         username = data.get("username", None)  # اسم المستخدم (اختياري)
         full_name = data.get("full_name", None)  # الاسم الكامل (اختياري)
+        payment_reference = data.get("payment_reference")  # مرجع الدفع
         logging.info(f"Received telegram_id: {telegram_id}, subscription_type_id: {subscription_type_id}")
 
         # التحقق من صحة البيانات المدخلة
@@ -360,13 +361,13 @@ async def link_wallet():
         data = await request.get_json()
         telegram_id = int(data.get("telegram_id"))  # تحويل إلى رقم صحيح
         wallet_address = data.get("wallet_address")
+        username = data.get("username")  # يمكن إرسال اسم المستخدم من العميل
+        full_name = data.get("full_name")  # يمكن إرسال الاسم الكامل من العميل
+        wallet_app = data.get("wallet_app")  # اسم التطبيق الذي قام المستخدم بربطه
 
         # إذا كان wallet_address كائنًا، استخراج العنوان النصي فقط
         if isinstance(wallet_address, dict) and "address" in wallet_address:
             wallet_address = wallet_address["address"]
-
-        username = data.get("username")  # يمكن إرسال اسم المستخدم من العميل
-        full_name = data.get("full_name")  # يمكن إرسال الاسم الكامل من العميل
 
         # التحقق من صحة البيانات
         if not telegram_id or not wallet_address:
@@ -376,27 +377,29 @@ async def link_wallet():
             # التحقق مما إذا كان المستخدم موجودًا
             user = await get_user(connection, telegram_id)
             if user:
-                # إذا كان المستخدم موجودًا، قم بتحديث عنوان المحفظة
+                # إذا كان المستخدم موجودًا، قم بتحديث البيانات
                 query = """
                 UPDATE users
-                SET wallet_address = $1
-                WHERE telegram_id = $2
+                SET wallet_address = $1,
+                    wallet_app = $2
+                WHERE telegram_id = $3
                 """
-                await connection.execute(query, wallet_address, telegram_id)
-                logging.info(f"Updated wallet address for user {telegram_id}.")
+                await connection.execute(query, wallet_address, wallet_app, telegram_id)
+                logging.info(f"Updated wallet details for user {telegram_id}.")
             else:
                 # إذا كان المستخدم غير موجود، قم بإضافته
                 await add_user(connection, telegram_id, username=username, full_name=full_name)
-                # ثم قم بتحديث عنوان المحفظة
+                # ثم قم بتحديث البيانات
                 query = """
                 UPDATE users
-                SET wallet_address = $1
-                WHERE telegram_id = $2
+                SET wallet_address = $1,
+                    wallet_app = $2
+                WHERE telegram_id = $3
                 """
-                await connection.execute(query, wallet_address, telegram_id)
-                logging.info(f"Added user {telegram_id} and set wallet address.")
+                await connection.execute(query, wallet_address, wallet_app, telegram_id)
+                logging.info(f"Added user {telegram_id} and set wallet details.")
 
-        return jsonify({"message": "Wallet address linked successfully!"}), 200
+        return jsonify({"message": "Wallet details linked successfully!"}), 200
 
     except ValueError as ve:
         logging.error(f"Invalid input data: {ve}")

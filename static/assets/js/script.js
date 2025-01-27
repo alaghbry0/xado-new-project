@@ -331,30 +331,36 @@ window.subscribe = async function (subscriptionTypeId) {
     console.log("بدء عملية الاشتراك...");
 
     try {
-        // التحقق من Telegram ID
+        // التأكد من Telegram ID
         if (!window.telegramId) {
             console.warn("Telegram ID غير متوفر. محاولة الحصول عليه...");
             const telegramId = await window.getTelegramId(); // استدعاء الدالة للحصول على Telegram ID
-            window.telegramId = telegramId; // تخزين Telegram ID في المتغير العام
+            window.telegramId = telegramId;
             console.log("Telegram ID تم تعيينه أثناء الاشتراك:", telegramId);
         }
 
+        // الحصول على اسم المستخدم واسم المستخدم الكامل
+        const username = window.tg?.initDataUnsafe?.user?.username || "Unknown User";
+        const fullName = `${window.tg?.initDataUnsafe?.user?.first_name || ''} ${window.tg?.initDataUnsafe?.user?.last_name || ''}`.trim();
+
         // إعداد بيانات الاشتراك
         const subscriptionData = {
-            telegram_id: window.telegramId, // استخدام Telegram ID المخزن عالميًا
-            subscription_type_id: subscriptionTypeId, // استخدام id الخاص بـ subscription_types
+            telegram_id: window.telegramId,
+            subscription_type_id: subscriptionTypeId,
+            username: username,
+            full_name: fullName,
         };
 
         console.log("البيانات المرسلة للاشتراك:", subscriptionData);
 
         // إرسال بيانات الاشتراك إلى API
         window.performAjaxRequest({
-            url: "https://xado-new-project.onrender.com/api/subscribe", // رابط API
+            url: "https://xado-new-project.onrender.com/api/subscribe",
             method: "POST",
             data: subscriptionData,
             onSuccess: (response) => {
                 console.log("تم الاشتراك بنجاح:", response);
-                alert(`🎉 ${response.message}`); // عرض رسالة نجاح
+                alert(`🎉 ${response.message}`);
             },
             onError: (error) => {
                 console.error("خطأ أثناء عملية الاشتراك:", error);
@@ -366,6 +372,7 @@ window.subscribe = async function (subscriptionTypeId) {
         alert("❌ حدث خطأ أثناء الاشتراك. يرجى التأكد من تشغيل التطبيق من داخل Telegram.");
     }
 };
+
 
 
 // دالة التحقق من الاشتراك
@@ -556,21 +563,33 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 window.sendWalletInfoToServer = function (walletAddress, telegramId) {
-    // إذا كان walletAddress كائنًا، استخراج العنوان النصي فقط
+    // استخراج العنوان النصي فقط إذا كان walletAddress كائنًا
     const formattedWalletAddress = typeof walletAddress === "object" && walletAddress.address
         ? walletAddress.address
         : walletAddress; // إذا كان نصًا، استخدمه كما هو
 
+    // الحصول على اسم المستخدم واسم المستخدم الكامل
+    const username = window.tg?.initDataUnsafe?.user?.username || "Unknown User";
+    const fullName = `${window.tg?.initDataUnsafe?.user?.first_name || ''} ${window.tg?.initDataUnsafe?.user?.last_name || ''}`.trim();
+    const walletApp = walletAddress?.name || "Unknown Wallet";
+
     console.log("إرسال بيانات المحفظة إلى الخادم...");
     console.log("Telegram ID:", telegramId);
     console.log("Wallet Address:", formattedWalletAddress);
+    console.log("Username:", username);
+    console.log("Full Name:", fullName);
+    console.log("Wallet App:", walletApp);
 
+    // إرسال البيانات إلى الخادم
     window.performAjaxRequest({
         url: "/api/link-wallet",
         method: "POST",
         data: {
-            wallet_address: formattedWalletAddress, // إرسال العنوان النصي فقط
+            wallet_address: formattedWalletAddress,
             telegram_id: telegramId,
+            username: username,
+            full_name: fullName,
+            wallet_app: walletApp,
         },
         onSuccess: (response) => {
             console.log("تم ربط المحفظة بنجاح:", response);
