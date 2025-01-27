@@ -1,5 +1,8 @@
 {
   "url": "https://xado-new-project.onrender.com",
   "name": "Exaado",
-  "iconUrl": "https://xado-new-project.onrender.com/static/assets/img/icon.png"
+  "iconUrl": "https://xado-new-project.onrender.com/static/assets/img/icon.png",
+  "dAppServerPublicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA+Dt9WQET0RdnD1ER1Vlv6CXA2K22oNSA+ECey8qjBOlIehYj2pYcVkiRxJxHH0fS6ZCTdZLh66NOmGRKtX1zG0qxxr6Z7CWrWKvHwiXyEkBOCi+9EcgoBxQCvGsYgZWCEiJ6i+pEJI1a9XaF+BGGarMy5srQY/AMUHW1n5GhhqbXWmuCdriCKRvgQPX4zqDQCjN1wIVgewU4KFhH8RRRqZYmk/Tu5O4Nrnu/Swo/zLaqjmzg9VTBwAFCAo94b0AmxESXjksaFFQvH9bKgoN8oG3B8PbQv+pGB6QWIffdjzwW5fOZaZ2Fr8NXCnP07RblA4wAPNa6d43zNOocU71pmQIDAQAB",
+  "version": "1.0.0",
+  "permissions": ["ton_address", "send_transaction"]
 }
