@@ -539,28 +539,25 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         });
 
-        console.log("✅ Manifest URL loaded successfully and Ton Connect UI initialized.");
-        alert("🎉 تم تحميل Manifest بنجاح وتم تهيئة Ton Connect UI!");
-
         // التعامل مع استجابة ربط المحفظة
-        tonConnectUI.onStatusChange((wallet) => {
-            if (wallet) {
-                console.log('Wallet connected:', wallet);
-                console.log('Telegram ID:', window.telegramId); // عرض Telegram ID
-                alert(`🎉 Wallet connected: ${wallet.account}`);
-                // إرسال بيانات المحفظة إلى الخادم
-                window.sendWalletInfoToServer(wallet.account, window.telegramId);
-            } else {
-                console.log('Wallet disconnected');
-                alert("⚠️ Wallet disconnected.");
-            }
-        });
-
-    } catch (error) {
-        console.error("❌ حدث خطأ أثناء تهيئة TonConnect UI:", error);
-        alert("❌ حدث خطأ أثناء تهيئة TonConnect UI: " + error.message);
-    }
-});
+    tonConnectUI.onStatusChange((wallet) => {
+        if (wallet) {
+            console.log('Wallet connected:', wallet);
+            console.log('Telegram ID:', window.telegramId);
+            alert(`🎉 Wallet connected: ${wallet.account}`);
+            // إرسال بيانات المحفظة إلى الخادم
+            window.sendWalletInfoToServer(wallet.account, window.telegramId, true);
+        } else {
+            console.log('Wallet disconnected');
+            alert("⚠️ Wallet disconnected.");
+            // تحديث حالة الاتصال في قاعدة البيانات
+            window.sendWalletInfoToServer(null, window.telegramId, false);
+        }
+    });
+} catch (error) {
+    console.error("❌ حدث خطأ أثناء تهيئة TonConnect UI:", error);
+    alert("❌ حدث خطأ أثناء تهيئة TonConnect UI: " + error.message);
+}
 
 window.sendWalletInfoToServer = function (walletAddress, telegramId) {
     // استخراج العنوان النصي فقط إذا كان walletAddress كائنًا

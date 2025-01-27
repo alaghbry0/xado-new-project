@@ -9,15 +9,15 @@ async def create_db_pool():
     return await asyncpg.create_pool(**DATABASE_CONFIG)
 
 # استعلامات إدارة المستخدمين
-async def add_user(connection, telegram_id, username=None, full_name=None):
+async def add_user(connection, telegram_id, username=None, full_name=None, wallet_app=None):
     """إضافة مستخدم جديد أو تحديث بيانات مستخدم موجود."""
     try:
         await connection.execute("""
-            INSERT INTO users (telegram_id, username, full_name)
-            VALUES ($1, $2, $3)
+            INSERT INTO users (telegram_id, username, full_name, wallet_app)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (telegram_id) DO UPDATE
-            SET username = $2, full_name = $3
-        """, telegram_id, username, full_name)
+            SET username = $2, full_name = $3, wallet_app = $4
+        """, telegram_id, username, full_name, wallet_app)
         logging.info(f"User {telegram_id} added/updated successfully.")
         return True
     except Exception as e:
@@ -25,11 +25,18 @@ async def add_user(connection, telegram_id, username=None, full_name=None):
         return False
 
 
+
 async def get_user(connection, telegram_id):
-    """جلب المستخدم من قاعدة البيانات باستخدام Telegram ID."""
+    """جلب بيانات المستخدم من قاعدة البيانات باستخدام Telegram ID."""
     try:
         user = await connection.fetchrow("""
-            SELECT * FROM users WHERE telegram_id = $1
+            SELECT telegram_id, username, full_name, wallet_address, wallet_app, 
+                   CASE 
+                       WHEN wallet_address IS NOT NULL THEN 'connected'
+                       ELSE 'disconnected'
+                   END AS wallet_status
+            FROM users
+            WHERE telegram_id = $1
         """, telegram_id)
         if user:
             logging.info(f"User {telegram_id} found in database.")
@@ -39,6 +46,7 @@ async def get_user(connection, telegram_id):
     except Exception as e:
         logging.error(f"Error fetching user {telegram_id}: {e}")
         return None
+
 
 
 # استعلامات إدارة الاشتراكات

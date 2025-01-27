@@ -15,6 +15,8 @@ from database.db_utils import add_user_to_channel, close_telegram_bot_session
 from Crypto.Signature import pkcs1_15
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256
+from dotenv import load_dotenv
+load_dotenv()  # تحميل متغيرات البيئة
 
 telegram_bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
@@ -359,47 +361,59 @@ async def link_wallet():
     try:
         # استلام البيانات من الطلب
         data = await request.get_json()
-        telegram_id = int(data.get("telegram_id"))  # تحويل إلى رقم صحيح
+        telegram_id = int(data.get("telegram_id"))
         wallet_address = data.get("wallet_address")
-        username = data.get("username")  # يمكن إرسال اسم المستخدم من العميل
-        full_name = data.get("full_name")  # يمكن إرسال الاسم الكامل من العميل
-        wallet_app = data.get("wallet_app")  # اسم التطبيق الذي قام المستخدم بربطه
+        username = data.get("username")
+        full_name = data.get("full_name")
+        wallet_app = data.get("wallet_app")
+        wallet_connected = data.get("wallet_connected", True)  # حالة الاتصال (True عند الربط)
 
         # إذا كان wallet_address كائنًا، استخراج العنوان النصي فقط
         if isinstance(wallet_address, dict) and "address" in wallet_address:
             wallet_address = wallet_address["address"]
 
-        # التحقق من صحة البيانات
-        if not telegram_id or not wallet_address:
-            return jsonify({"error": "Missing telegram_id or wallet_address"}), 400
-
         async with app.db_pool.acquire() as connection:
             # التحقق مما إذا كان المستخدم موجودًا
             user = await get_user(connection, telegram_id)
-            if user:
-                # إذا كان المستخدم موجودًا، قم بتحديث البيانات
-                query = """
-                UPDATE users
-                SET wallet_address = $1,
-                    wallet_app = $2
-                WHERE telegram_id = $3
-                """
-                await connection.execute(query, wallet_address, wallet_app, telegram_id)
-                logging.info(f"Updated wallet details for user {telegram_id}.")
-            else:
-                # إذا كان المستخدم غير موجود، قم بإضافته
-                await add_user(connection, telegram_id, username=username, full_name=full_name)
-                # ثم قم بتحديث البيانات
-                query = """
-                UPDATE users
-                SET wallet_address = $1,
-                    wallet_app = $2
-                WHERE telegram_id = $3
-                """
-                await connection.execute(query, wallet_address, wallet_app, telegram_id)
-                logging.info(f"Added user {telegram_id} and set wallet details.")
 
-        return jsonify({"message": "Wallet details linked successfully!"}), 200
+            if user:
+                # تحديث البيانات
+                if wallet_connected:
+                    query = """
+                    UPDATE users
+                    SET wallet_address = $1,
+                        wallet_app = $2,
+                        username = $3,
+                        full_name = $4
+                    WHERE telegram_id = $5
+                    """
+                    await connection.execute(query, wallet_address, wallet_app, username, full_name, telegram_id)
+                    logging.info(f"Updated user {telegram_id} with new wallet details.")
+                else:
+                    # إذا كانت المحفظة مفصولة، قم بإزالة عنوان المحفظة
+                    query = """
+                    UPDATE users
+                    SET wallet_address = NULL,
+                        wallet_app = NULL
+                    WHERE telegram_id = $1
+                    """
+                    await connection.execute(query, telegram_id)
+                    logging.info(f"User {telegram_id}'s wallet disconnected.")
+            else:
+                # إضافة المستخدم الجديد
+                await add_user(connection, telegram_id, username=username, full_name=full_name)
+                if wallet_connected:
+                    query = """
+                    UPDATE users
+                    SET wallet_address = $1,
+                        wallet_app = $2
+                    WHERE telegram_id = $3
+                    """
+                    await connection.execute(query, wallet_address, wallet_app, telegram_id)
+                    logging.info(f"Added user {telegram_id} and set wallet details.")
+
+        message = "Wallet details updated successfully!" if wallet_connected else "Wallet disconnected successfully!"
+        return jsonify({"message": message}), 200
 
     except ValueError as ve:
         logging.error(f"Invalid input data: {ve}")
